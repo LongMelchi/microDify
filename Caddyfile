@@ -1,0 +1,18 @@
+:80 {
+    redir https://{host} 301
+}
+
+:443 {
+    handle /api/* {
+        reverse_proxy fastapi:8000
+    }
+
+    handle /_next/* {
+        root * /srv/static
+    }
+
+    handle {
+        root * /srv/static
+        try_files {path} /index.html
+    }
+}

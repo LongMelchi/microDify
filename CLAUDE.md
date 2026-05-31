@@ -91,6 +91,25 @@ microDify/
 | `service.py` | async 业务逻辑、调同模块专项文件、调他模块公开接口、调 common | 接收 Request/Response/BackgroundTasks |
 | `core/deps.py` | token 校验、DB session、Redis 连接 | 资源权限判断（放 service） |
 
+### API 响应规范 🔴
+
+所有 API endpoint **必须**通过 `app/core/schemas.py` 的 `Result[T]` 或 `PageResult[T]` 包装返回，禁止直接返回裸 dict / list / ORM 对象。
+
+| 场景 | 返回方式 | 示例 |
+|------|----------|------|
+| 成功（单对象） | `Result.ok(data)` | `return Result.ok(chat_app).model_dump()` |
+| 成功（列表） | `Result.ok(data)` | `return Result.ok(items).model_dump()` |
+| 成功（分页） | `PageResult.ok(data, total, page, size)` | `return paginate(db, stmt, page=1, size=20).model_dump()` |
+| 失败（业务异常） | `raise BizException(ErrorCode.xxx)` | 由全局 handler 自动转为 `Result.fail()` |
+| 失败（参数校验） | 由 Pydantic ValidationError handler 自动处理 | 自动转为 `Result.fail(400, detail)` |
+| 健康检查 | `Result.ok(data)` | `return Result.ok({"app": ..., "version": ...}).model_dump()` |
+
+**禁止的写法：**
+
+- `return {"data": rows}` —— 直接返回 dict
+- `return rows` —— 直接返回 ORM 对象
+- `return {"ok": True, "data": rows}` —— 自造响应格式
+
 ### 允许的专项文件（`service.py` 超 400 行时拆，仅同模块可见）
 
 `chunker.py`（文本算法）｜`parser.py`（文档解析）｜`executor.py`（核心执行 >100 行）｜`engine.py`（编排/调度）｜`nodes/`（多节点实现）｜`tools/`（多工具实现）
