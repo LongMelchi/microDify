@@ -86,10 +86,18 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Connect to the live database and apply migrations."""
+    # Build a sync URL from the async URL (sync engine is needed by Alembic)
+    sync_url = alembic_settings.database_url.replace(
+        "postgresql+asyncpg://", "postgresql://"
+    ).replace(
+        "postgresql+psycopg://", "postgresql://"
+    )
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        url=sync_url,
     )
 
     with connectable.connect() as connection:

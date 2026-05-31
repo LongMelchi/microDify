@@ -1,17 +1,13 @@
 /**
- * Common / shared types.
+ * Common shared types — aligned with ``app/core/schemas.py``.
  */
 
+/** Paginated response from the backend ``PageResult<T>``. */
 export interface PaginatedResponse<T> {
-  items: T[];
+  code: number;
+  message: string;
+  data: T[];
   total: number;
   page: number;
-  page_size: number;
-  total_pages: number;
-}
-
-export interface ApiError {
-  detail: string;
-  code?: string;
-  status_code?: number;
+  size: number;
 }

@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     default_llm_model: str = "gpt-4o"
     default_embedding_model: str = "text-embedding-3-small"
 
+    # --- LLM Provider Selection ---
+    llm_provider: str = "openai"          # openai | anthropic
+    embedding_provider: str = "openai"
+
     # --- Security ---
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

@@ -144,4 +144,70 @@ Embedding 模型	default_embedding_model: str = "text-embedding-3-small"	DEFAULT
 调试模式	debug: bool = False	DEBUG
 3. 不做 MyBatis-Plus 配置——SQLAlchemy 的连接池、ORM 映射、session 管理已在 app/core/database.py 中完成，无 XML 映射文件。不做 8080 端口——FastAPI 默认 8000，由 Caddy 在 80/443 对外暴露。
 
+根据microDify的项目使用的技术栈，可以参考claude.md，优化下面的提示词内容，使其符合本项目，先在对话中输出。
+初始化 Hify 前端项目 hify-web。Vue 3 + TypeScript + Vite + Element Plus。目录结构按 CLAUDE.md 中定义的前端结构来。Vite 开发服务器配置代理：/api 请求转发到 localhost:8080。
+
+初始化 microDify 前端项目 frontend/。React 19 + TypeScript + Next.js 15 (App Router) + Tailwind CSS 4。目录结构按 CLAUDE.md §2「目录结构」中 frontend/ 的定义来。
+1. 已有文件保留 —— package.json、next.config.ts、tsconfig.json、tailwind.config.ts、postcss.config.mjs、src/ 下所有页面和组件目录已在骨架中，不重建。
+2. 补充缺失的配置文件 —— 确保以下文件内容完整：
+next.config.ts 添加 API 代理：/api/* 转发到 http://localhost:8000。如果后端也在这台机器上开发，用 rewrites 配置
+src/app/globals.css 补充 Tailwind v4 的 @import "tailwindcss" 指令
+src/app/layout.tsx 补充 metadata 和规范化的 HTML 结构
+3. 安装依赖并验证 —— 运行 npm install（如果 node_modules 不存在），然后 npm run build 验证项目能正常编译。
+4. 不做 Element Plus 配置——microDify 的前端组件库为 Tailwind CSS + 自建 src/components/ui/ 组件，不引入第三方 UI 库。不做 8080 前端端口——Next.js 默认 3000。不做 Vue/Vite 迁移——项目技术栈已确定为 React + Next.js。
+
+根据microDify的项目使用的技术栈，可以参考claude.md，优化下面的提示词内容，使其符合本项目，先在对话中输出。
+在 hify-web/src/utils/ 下创建 request.ts，封装 axios 实例。baseURL 设为 /api。响应拦截器里判断 code：200 直接返回 data  字段（自动解包），非 200 用 Element Plus 的 ElMessage.error 提示 message，然后 reject。导出 get、post、put、del 四个方法。
+
+在 frontend/src/lib/api.ts 中封装 HTTP 请求客户端。基于原生 fetch（Next.js 不引入 axios，减少依赖），baseURL 设为 /api（通过 Next.js rewrites 代理到 FastAPI:8000）。
+
+未使用第三方 UI 库的消息提示——改为在 frontend/src/lib/api.ts 内实现一个简易的事件发布器 onHttpError，组件可订阅自定义错误处理。
+1. 统一请求函数 —— 导出 request<T>(method, url, data?, params?)。内部处理：
+自动拼接 baseURL、自动带 Authorization: Bearer <token>（从 lib/auth.ts 读）
+请求体 JSON.stringify，响应体 JSON.parse
+超时 30s（AbortController）
+2. 响应拦截 —— 解析 microDify 后端的统一响应格式 { code, message, data }：
+code === 200 → 自动解包，只返回 data 字段给调用方
+code !== 200 → 调用 onHttpError.emit(code, message)，返回 Promise.reject(new BizError(code, message))
+网络异常 → onHttpError.emit(0, "网络不可用")，reject
+3. 导出四个便捷方法：get<T>(url, params?)、post<T>(url, data)、put<T>(url, data)、del<T>(url)
+4. 额外导出 BizError 类（message 和 code 属性）和 ApiResponse<T> 类型（{ code, message, data: T }）。不做 Element Plus 的 ElMessage.error——React 项目用自定义事件或让各页面自行处理错误展示。不做 axios 的 CancelToken 管理器——一期不需要。
+
+根据microDify的项目使用的技术栈，可以参考claude.md，优化下面的提示词内容，使其符合本项目，先在对话中输出。
+在 hify-web/src/api/ 下创建 health.ts，用封装好的 request 调用 GET /api/v1/health。导出 getHealth 方法。
+
+在 frontend/src/lib/api/health.ts 中创建健康检查 API 调用。用 @/lib/api 中封装好的 get<T>() 方法调用 GET /health（经过 Next.js rewrites 代理后实际请求 http://localhost:8000/health，返回 Result<HealthInfo>，自动解包为 HealthInfo）。
+定义 HealthInfo 接口（app、version 两个字段）。导出 getHealth(): Promise<HealthInfo> 方法。不做 /api/v1 前缀——microDify 的 API 路径直接在 /api 下，没有版本号前缀。
+
+根据microDify的项目使用的技术栈，可以参考claude.md，优化下面的提示词内容，使其符合本项目，先在对话中输出。
+在 hify-web 中配置 Vue Router，创建以下路由和对应的空壳页面组件：模型管理、Agent 管理、对话。每个空壳页面只显示页面名称，比如 ProviderList.vue 里就一行"模型提供商管理"。再创建一个 App.vue 布局：左侧 Element Plus 菜单栏（三个菜单项对应三个路由），右侧内容区用 router-view。
+
+在 frontend/src/app/layout.tsx 中实现带侧边栏的应用布局，并补全缺失的页面内容。
+1. 侧边栏布局 —— 改造 src/app/layout.tsx，左侧固定宽度侧边栏 + 右侧内容区 {children}。侧边栏用 Tailwind CSS 手写（不引入 Element Plus），导航菜单包含 7 个菜单项，对应 microDify 的 7 个功能页面：
+菜单项	路由	对应页面
+对话	/chat	chat/page.tsx（已存在）
+Agent	/agent	agent/page.tsx（已存在）
+知识库	/knowledge	knowledge/page.tsx（已存在）
+工作流	/workflow	workflow/page.tsx（已存在）
+Prompt	/prompt	prompt/page.tsx（已存在）
+模型管理	/provider	需新建 provider/page.tsx
+设置	/settings	settings/page.tsx（已存在）
+菜单高亮当前路由（用 Next.js 的 usePathname()）。
+2. 补全空壳页面 —— 新建 src/app/provider/page.tsx，内容为"模型提供商管理"一行标题。其余 6 个已有页面（chat / agent / knowledge / workflow / prompt / settings）的内容替换为各自的中文标题。
+3. 不做 Vue Router——Next.js App Router 以文件系统为路由，src/app/ 下的目录结构即路由表。不做 Element Plus 菜单——Tailwind CSS 自建 layout/Sidebar 组件。
+
+根据microDify的项目使用的技术栈，可以参考claude.md，优化下面的提示词内容，使其符合本项目，先在对话中输出。
+修改 ProviderList.vue，在页面加载时调用 getHealth()，把返回结果显示在页面上。如果调用成功显示绿色的"后端已连接：Hify is running"，失败显示红色的"后端未连接"。
+
+修改 frontend/src/app/provider/page.tsx，改为客户端组件。页面加载时调用 @/lib/health 的 getHealth()，把结果显示在页面上：
+调用成功 → 显示绿色的"后端已连接：microDify v{version} is running"
+调用失败 → 显示红色的"后端未连接"
+用 useEffect 在组件挂载时发起调用，useState 管理加载态和结果。页面保持一行标题"模型提供商管理"，健康检查结果作为卡片展示在下方。
+
+写一个 start.sh 脚本，放在项目根目录。功能：检查 PostgreSQL 和 Redis 是否可用，构建后端并后台启动，轮询等待后端健康检查通过，启动前端开发服务器。加上错误处理：任何一步失败就停止并提示。
+
+写一个 stop.sh 脚本，优雅停止后端和前端进程。按 PID 文件找进程，先 SIGTERM 再等待，超时 SIGKILL。
+
+写一个 Makefile，包含以下 target：make start（启动）、make stop（停止）、make restart（重启）、make build（构建后端  +  前端）、make clean（清理构建产物）、make package（打包成可分发的  tar.gz）。
+
 
