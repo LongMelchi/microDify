@@ -91,6 +91,30 @@ microDify/
 | `service.py` | async 业务逻辑、调同模块专项文件、调他模块公开接口、调 common | 接收 Request/Response/BackgroundTasks |
 | `core/deps.py` | token 校验、DB session、Redis 连接 | 资源权限判断（放 service） |
 
+### 时间戳规范 🔴
+
+> 全项目唯一时间戳风格，禁止各模块自定义。统一来自 `app/core/database.py` 的 Mixin。
+
+- **所有业务表的 `created_at` / `updated_at` 必须由 `TimestampsMixin` 提供**，模型只写 `class Foo(Base, TimestampsMixin)`，**禁止**在模型体内手写 `created_at` / `updated_at` 列。
+- 软删除统一用 `SoftDeleteMixin`（`is_deleted`），同样禁止手写。
+- Mixin 内部采用 SQLAlchemy 2.0 typed 风格：`Mapped[datetime]` + `mapped_column(DateTime(timezone=True), server_default=func.now(), ...)`，`updated_at` 额外带 `onupdate=func.now()`。
+- **时间一律由数据库生成（`server_default=func.now()`），禁止 Python 侧 `default=lambda: datetime.now(...)`**——避免应用/DB 时钟漂移，且对裸 SQL / 批量插入同样生效。
+- 执行记录表的 `started_at` / `finished_at` 是业务语义时间列（非记录创建时间），在模型体内单独显式声明 `Column(DateTime(timezone=True), ...)`，不归 Mixin 管。
+
+✅ 推荐写法：
+
+```python
+from app.core.database import Base, TimestampsMixin
+
+class ChatApp(Base, TimestampsMixin):
+    __tablename__ = "chat_apps"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    # created_at / updated_at 由 TimestampsMixin 提供，勿手写
+```
+
+❌ 禁止：模型内手写 `created_at = Column(..., server_default=func.now())`、或用 `default=lambda: datetime.now(timezone.utc)`、或各模块各写一套。
+
 ### API 响应规范 🔴
 
 所有 API endpoint **必须**通过 `app/core/schemas.py` 的 `Result[T]` 或 `PageResult[T]` 包装返回，禁止直接返回裸 dict / list / ORM 对象。
@@ -131,7 +155,7 @@ microDify/
 
 ### 新增模块流程
 
-1. 用白名单校验依赖合规 → 2. 建 `app/<module>/` → 3. 建 4 个必含文件 → 4. `__init__.py` 只 export router + 公开 service → 5. `router.py` 用 `APIRouter(prefix="/<module>", tags=["<module>"])` → 6. `models.py` 继承 `Base`，`__tablename__="<module>s"` → 7. `schemas.py` 三后缀命名 → 8. `service.py` 纯 async，签名只收 db/user/业务参数 → 9. `main.py` 注册路由 → 10. 更新本文件白名单 → 11. 生成 Alembic 迁移
+1. 用白名单校验依赖合规 → 2. 建 `app/<module>/` → 3. 建 4 个必含文件 → 4. `__init__.py` 只 export router + 公开 service → 5. `router.py` 用 `APIRouter(prefix="/<module>", tags=["<module>"])` → 6. `models.py` 继承 `Base, TimestampsMixin`（需软删除再加 `SoftDeleteMixin`），`__tablename__="<module>s"`，禁止手写时间戳列 → 7. `schemas.py` 三后缀命名 → 8. `service.py` 纯 async，签名只收 db/user/业务参数 → 9. `main.py` 注册路由 → 10. 更新本文件白名单 → 11. 生成 Alembic 迁移
 
 ### import 自检（写 `from app.xxx import` 前）
 
@@ -217,7 +241,7 @@ users
 
 **通用字段约定**
 
-每张业务表必含：`id UUID PK DEFAULT gen_random_uuid()`、`created_at TIMESTAMPTZ DEFAULT now()`、`updated_at TIMESTAMPTZ DEFAULT now()`。有用户归属加 `owner_id UUID NOT NULL REFERENCES users(id)` + 索引。有软删除加 `is_deleted BOOLEAN DEFAULT FALSE`。执行记录表加 `status VARCHAR(20) NOT NULL` + `error_message TEXT` + `started_at/finished_at TIMESTAMPTZ`。向量表加 `embedding vector(1536)` + `chunk_index INTEGER NOT NULL`。
+每张业务表必含：`id UUID PK DEFAULT gen_random_uuid()`、`created_at TIMESTAMPTZ DEFAULT now()`、`updated_at TIMESTAMPTZ DEFAULT now()`。其中 `created_at` / `updated_at` 一律由 `TimestampsMixin` 提供（见 §3 时间戳规范，禁止手写）。有用户归属加 `owner_id UUID NOT NULL REFERENCES users(id)` + 索引。有软删除加 `SoftDeleteMixin`（`is_deleted BOOLEAN DEFAULT FALSE`）。执行记录表加 `status VARCHAR(20) NOT NULL` + `error_message TEXT` + `started_at/finished_at TIMESTAMPTZ`（这两列单独显式声明，不归 Mixin）。向量表加 `embedding vector(1536)` + `chunk_index INTEGER NOT NULL`。
 
 ## 5. 外部 LLM 调用方案 🔴
 

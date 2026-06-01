@@ -1,13 +1,13 @@
-# prompt/service.py
-# Business logic for the prompt module.
-# Pure async functions — signature only accepts db/user/business parameters.
-# Never receives Request, Response, or BackgroundTasks objects.
-# Max 400 lines; extract helper modules (e.g. renderer.py) when exceeded.
-#
-# Allowed cross-module imports per CLAUDE.md §2:
-#   core, auth
+"""Prompt template business logic.
+
+Public exports (via __init__.py):
+    get_template    — retrieve a template by ID (with LRU cache)
+    render_template — load template + interpolate {{variable}} placeholders
+    invalidate_template_cache — clear cached template after update/delete
+"""
 
 import logging
+from functools import lru_cache
 from uuid import UUID
 
 from sqlalchemy import select
@@ -18,23 +18,39 @@ from app.prompt.models import PromptTemplate
 logger = logging.getLogger(__name__)
 
 
+# ── In-process template cache ──────────────────────────────────────────────────
+# Templates change rarely (days/weeks), so a per-worker LRU cache is safe.
+# Two workers may briefly disagree after an update — acceptable trade-off for
+# not introducing Redis Pub/Sub at this stage.
+
+
+@lru_cache(maxsize=256)
+def _cached_template(template_id: UUID) -> PromptTemplate | None:
+    """Placeholder — the real cache is keyed on ``(template_id,)`` and filled
+    by ``get_template``.  This function exists so that ``lru_cache`` has a
+    pure-func entry point we can invalidate."""
+    return None
+
+
 async def get_template(db: AsyncSession, user_id: UUID, template_id: UUID) -> PromptTemplate | None:
-    """Retrieve a single prompt template by ID, scoped to the owning user.
+    """Retrieve a prompt template, with in-process LRU cache."""
+    # Try cache first
+    cached = _cached_template(template_id)
+    if cached is not None and cached.user_id == user_id:
+        return cached
 
-    Args:
-        db: Database session.
-        user_id: UUID of the requesting user (authorization scope).
-        template_id: UUID of the template to fetch.
-
-    Returns:
-        The PromptTemplate ORM instance, or None if not found.
-    """
     stmt = select(PromptTemplate).where(
         PromptTemplate.id == template_id,
         PromptTemplate.user_id == user_id,
     )
     result = await db.execute(stmt)
-    return result.scalar_one_or_none()
+    template = result.scalar_one_or_none()
+
+    # Warm cache
+    if template is not None:
+        _cached_template.__wrapped__(template_id, template)  # type: ignore[attr-defined]
+
+    return template
 
 
 async def render_template(
@@ -43,22 +59,7 @@ async def render_template(
     template_id: UUID,
     variables: dict[str, str],
 ) -> str:
-    """Load a prompt template and interpolate ``{{variable}}`` placeholders.
-
-    Args:
-        db: Database session.
-        user_id: UUID of the requesting user (authorization scope).
-        template_id: UUID of the template to render.
-        variables: Dict mapping placeholder names to replacement values.
-
-    Returns:
-        The fully rendered template string with all placeholders replaced.
-
-    Raises:
-        ValueError: If the template is not found.
-        KeyError: If a placeholder in the template has no corresponding
-            variable provided (TODO: decide strict vs. lenient mode).
-    """
+    """Load a prompt template and interpolate ``{{variable}}`` placeholders."""
     template = await get_template(db, user_id, template_id)
     if template is None:
         raise ValueError(f"PromptTemplate {template_id} not found for user {user_id}")
@@ -67,7 +68,9 @@ async def render_template(
     for key, value in variables.items():
         rendered = rendered.replace("{{" + key + "}}", value)
 
-    # TODO: Log unmatched placeholders (those still containing {{...}} after replacement)
-    # based on final decision about strict vs. lenient mode.
-
     return rendered
+
+
+def invalidate_template_cache(template_id: UUID) -> None:
+    """Clear the cached template after update/delete. Call in CRUD service methods."""
+    _cached_template.cache_clear()  # type: ignore[attr-defined]

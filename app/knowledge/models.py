@@ -12,18 +12,20 @@
 """
 
 import uuid
-from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.core.database import Base
+from app.core.database import Base, TimestampsMixin
 
 
-class KnowledgeBase(Base):
-    """知识库"""
+class KnowledgeBase(Base, TimestampsMixin):
+    """知识库
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "knowledge_bases"
 
@@ -36,24 +38,16 @@ class KnowledgeBase(Base):
         nullable=False,
         index=True,
     )
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-    )
 
     # relationship
     documents = relationship("Document", back_populates="knowledge_base", cascade="all, delete-orphan")
 
 
-class Document(Base):
-    """上传的文档"""
+class Document(Base, TimestampsMixin):
+    """上传的文档
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "documents"
 
@@ -71,25 +65,17 @@ class Document(Base):
     status = Column(
         String(32), nullable=False, default="pending", index=True
     )  # pending | parsing | chunking | embedding | ready | failed
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-    )
 
     # relationship
     knowledge_base = relationship("KnowledgeBase", back_populates="documents")
     chunks = relationship("Chunk", back_populates="document", cascade="all, delete-orphan")
 
 
-class Chunk(Base):
-    """文档分块，含 embedding 向量"""
+class Chunk(Base, TimestampsMixin):
+    """文档分块，含 embedding 向量
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "chunks"
 
@@ -103,11 +89,6 @@ class Chunk(Base):
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1536), nullable=True)  # OpenAI text-embedding-3-small 维度
     chunk_index = Column(Integer, nullable=False, default=0)
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
 
     # relationship
     document = relationship("Document", back_populates="chunks")

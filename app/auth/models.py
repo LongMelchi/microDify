@@ -5,17 +5,19 @@
 """
 
 import uuid
-from datetime import datetime
 
-from sqlalchemy import String, DateTime, func
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.core.database import Base, TimestampsMixin
 
 
-class User(Base):
-    """平台用户，所有资源的归属点"""
+class User(Base, TimestampsMixin):
+    """平台用户，所有资源的归属点
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "users"
 
@@ -32,13 +34,4 @@ class User(Base):
     )
     hashed_password: Mapped[str] = mapped_column(
         String(255), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
     )

@@ -8,17 +8,19 @@ Tables:
 """
 
 import uuid
-from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Column, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.core.database import Base
+from app.core.database import Base, TimestampsMixin
 
 
-class ChatApp(Base):
-    """对话应用：绑定 Prompt 模板，可选关联知识库。"""
+class ChatApp(Base, TimestampsMixin):
+    """对话应用：绑定 Prompt 模板，可选关联知识库。
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "chat_apps"
 
@@ -27,20 +29,17 @@ class ChatApp(Base):
     description = Column(Text, nullable=True)
     prompt_template_id = Column(UUID(as_uuid=True), ForeignKey("prompt_templates.id"), nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # relationships
     conversations = relationship("Conversation", back_populates="chat_app", cascade="all, delete-orphan")
-    knowledge_bases = relationship(
-        "KnowledgeBase",
-        secondary="chat_app_knowledge_bases",
-        back_populates="chat_apps",
-    )
+    # M:N to KnowledgeBase is resolved via explicit join on chat_app_knowledge_bases table
 
 
-class Conversation(Base):
-    """一次对话会话，归属一个对话应用。"""
+class Conversation(Base, TimestampsMixin):
+    """一次对话会话，归属一个对话应用。
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "conversations"
 
@@ -48,16 +47,17 @@ class Conversation(Base):
     title = Column(String(255), nullable=True)
     chat_app_id = Column(UUID(as_uuid=True), ForeignKey("chat_apps.id"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # relationships
     chat_app = relationship("ChatApp", back_populates="conversations")
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at")
 
 
-class Message(Base):
-    """会话中的一条消息，归属一个会话。"""
+class Message(Base, TimestampsMixin):
+    """会话中的一条消息，归属一个会话。
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "messages"
 
@@ -65,7 +65,6 @@ class Message(Base):
     conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False, index=True)
     role = Column(String(32), nullable=False)  # user / assistant / system
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # relationships
     conversation = relationship("Conversation", back_populates="messages")

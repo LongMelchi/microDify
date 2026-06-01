@@ -34,6 +34,27 @@ function Run-Bash($ScriptPath) {
 
 switch ($Target) {
   "start" {
+    Write-Host "Ensuring PostgreSQL & Redis are running..." -ForegroundColor Yellow
+    # PostgreSQL — start Windows service if not running
+    $pgSvc = Get-Service -Name "postgresql-x64-18" -ErrorAction SilentlyContinue
+    if ($pgSvc -and $pgSvc.Status -ne "Running") {
+      Write-Host "PostgreSQL not running — starting service..." -ForegroundColor Yellow
+      Start-Service -Name "postgresql-x64-18"
+      Start-Sleep -Seconds 2
+    }
+    # Redis — auto-start if found
+    $redisPaths = @(
+      "D:\redis\Redis-x64-5.0.14.1\redis-server.exe",
+      "E:\redis\Redis-x64-5.0.14.1\redis-server.exe",
+      "C:\redis\Redis-x64-5.0.14.1\redis-server.exe"
+    )
+    $redisExe = $redisPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $redisRunning = (netstat -ano 2>$null | Select-String ":6379 " | Select-String "LISTENING")
+    if (-not $redisRunning -and $redisExe) {
+      Write-Host "Redis not running — starting..." -ForegroundColor Yellow
+      Start-Process -FilePath $redisExe -ArgumentList "--port 6379 --maxmemory 128mb" -WindowStyle Hidden
+      Start-Sleep -Seconds 2
+    }
     Write-Host "Checking ports 8000, 3000..." -ForegroundColor Yellow
     Free-Port 8000
     Free-Port 3000

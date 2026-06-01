@@ -3,32 +3,50 @@
 公开函数（通过 __init__.py 导出）:
     authenticate — 验证邮箱密码，返回 JWT
     create_user  — 注册新用户
+    get_user     — 按 ID 获取用户（返回 ORM 对象）
 
 依赖白名单: core/
 """
 
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.models import User
+from app.core.exceptions import BizException, ErrorCode
+from app.core.security import create_token, verify_password
+
+
+async def get_user(db: AsyncSession, user_id: uuid.UUID) -> User:
+    """按 ID 获取用户，不存在则抛 BizException。"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise BizException(ErrorCode.NOT_FOUND, detail="用户不存在")
+    return user
+
+
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+    """按邮箱查找用户，不存在返回 None。"""
+    result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
 
 
 async def authenticate(
     db: AsyncSession,
     email: str,
     password: str,
-) -> str | None:
+) -> str:
     """验证用户凭证并返回 JWT token。
 
-    Args:
-        db: 数据库会话。
-        email: 用户邮箱。
-        password: 明文密码。
-
-    Returns:
-        JWT 字符串，验证失败返回 None。
+    Raises:
+        BizException(UNAUTHORIZED): 邮箱或密码错误。
     """
-    # TODO: 查询 User → 校验 hashed_password → 签发 JWT
-    ...
+    user = await get_user_by_email(db, email)
+    if not user or not verify_password(password, user.hashed_password):
+        raise BizException(ErrorCode.UNAUTHORIZED, detail="邮箱或密码错误")
+    return create_token(str(user.id))
 
 
 async def create_user(
@@ -39,14 +57,23 @@ async def create_user(
 ) -> uuid.UUID:
     """创建新用户。
 
-    Args:
-        db: 数据库会话。
-        email: 用户邮箱。
-        username: 用户名。
-        password: 明文密码（内部哈希后存储）。
-
-    Returns:
-        新创建用户的 UUID。
+    Raises:
+        BizException(BAD_REQUEST): 邮箱或用户名已存在。
     """
-    # TODO: 校验唯一性 → 哈希密码 → 写入 User → 返回 id
-    ...
+    from app.core.security import hash_password
+
+    # Check uniqueness
+    existing = await db.execute(
+        select(User).where((User.email == email) | (User.username == username))
+    )
+    if existing.scalar_one_or_none():
+        raise BizException(ErrorCode.BAD_REQUEST, detail="邮箱或用户名已存在")
+
+    user = User(
+        email=email,
+        username=username,
+        hashed_password=hash_password(password),
+    )
+    db.add(user)
+    await db.flush()
+    return user.id

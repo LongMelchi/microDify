@@ -11,6 +11,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.core.schemas import CoreResponse
+
 
 # ─── Agent ────────────────────────────────────────────────────────────────
 
@@ -23,30 +25,25 @@ class AgentCreate(BaseModel):
     system_prompt: str = Field(..., min_length=1)
     model_provider: str = Field(..., min_length=1, max_length=64)
     model_name: str = Field(..., min_length=1, max_length=128)
-    tools_enabled: dict | None = None
+    enabled_tools: list[str] | None = None
     knowledge_base_ids: list[UUID] | None = None
     prompt_template_id: UUID | None = None
 
     model_config = {"from_attributes": True}
 
 
-class AgentResponse(BaseModel):
+class AgentResponse(CoreResponse):
     """Agent 响应"""
 
-    id: UUID
     user_id: UUID
     name: str
     description: str | None
     system_prompt: str
     model_provider: str
     model_name: str
-    tools_enabled: dict
+    enabled_tools: list[str]
     status: str
     prompt_template_id: UUID | None
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class AgentFilter(BaseModel):

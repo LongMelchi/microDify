@@ -7,6 +7,8 @@ receive Request / Response / BackgroundTasks objects.
 
 from uuid import UUID
 
+from app.common.redis_client import get_redis
+
 
 async def save_file(
     *,
@@ -63,24 +65,23 @@ async def check_rate_limit(
     action: str,
     max_requests: int = 60,
     window_seconds: int = 60,
-) -> dict:
-    """Check whether the action is within the configured rate limit.
+) -> bool:
+    """Return ``True`` if *user_id* is within the rate limit for *action*.
 
-    Uses Redis ``INCR + EXPIRE`` to track request counts per user
-    within a sliding window.
+    Thin orchestration over :meth:`RedisClient.check_rate_limit` (the single
+    source of the ``INCR + EXPIRE`` rolling-window logic).  Fails **open**
+    (returns ``True``) when Redis is unavailable so a Redis outage never blocks
+    user requests.
 
     Args:
-        user_id:       UUID of the requesting user.
-        action:        Rate-limit scope (e.g. ``"llm:chat"``, ``"api:upload"``).
-        max_requests:  Maximum allowed requests within the window.
+        user_id:        UUID of the requesting user.
+        action:         Rate-limit scope (e.g. ``"llm:chat"``, ``"api:upload"``).
+        max_requests:   Maximum allowed requests within the window.
         window_seconds: Time window in seconds.
-
-    Returns:
-        Dictionary with keys ``allowed`` (bool), ``remaining`` (int),
-        and ``reset_at`` (datetime).
     """
-    # Stub — implementation will call INCR on a Redis key shaped like
-    #   rate_limit:<user_id>:<action>:<window>
-    # and compare the result against max_requests.
-    _ = user_id, action, max_requests, window_seconds
-    raise NotImplementedError("check_rate_limit is not yet implemented")
+    redis = await get_redis()
+    if redis is None:
+        return True
+    return await redis.check_rate_limit(
+        str(user_id), action, max_requests, window_seconds
+    )

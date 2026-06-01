@@ -96,7 +96,7 @@ step "Checking ports ${BACKEND_PORT} and ${FRONTEND_PORT}..."
 free_port "$BACKEND_PORT"
 free_port "$FRONTEND_PORT"
 
-# ── Step 1 — Check PostgreSQL ──────────────────────────────────────────────────
+# ── Step 1 — Ensure PostgreSQL is running ──────────────────────────────────────
 
 step "Checking PostgreSQL..."
 
@@ -107,44 +107,83 @@ fi
 
 PG_HOST="${PG_HOST:-localhost}"
 PG_PORT="${PG_PORT:-5432}"
-PG_USER="${POSTGRES_USER:-microdify}"
-PG_DB="${POSTGRES_DB:-microdify}"
 
-if command -v pg_isready &>/dev/null; then
-  if pg_isready -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" -q; then
-    ok "PostgreSQL is ready"
-  else
-    die "PostgreSQL is NOT reachable at ${PG_HOST}:${PG_PORT}. Start it first."
+ensure_pg() {
+  # Already running?
+  if command -v pg_isready &>/dev/null; then
+    if pg_isready -h "$PG_HOST" -p "$PG_PORT" -q 2>/dev/null; then
+      ok "PostgreSQL is ready"
+      return 0
+    fi
   fi
-else
-  # Fallback: nc / bash tcp check
-  if (echo >/dev/tcp/"$PG_HOST"/"$PG_PORT") 2>/dev/null; then
-    ok "PostgreSQL port is open (pg_isready not found, tcp check only)"
-  else
-    die "PostgreSQL port ${PG_PORT} is NOT open. Start it first."
+  # Windows: start the PostgreSQL service
+  if command -v sc &>/dev/null; then
+    step "PostgreSQL not running — starting service..."
+    sc start postgresql-x64-18 2>/dev/null || true
+    # Wait for it
+    for i in $(seq 1 15); do
+      if command -v pg_isready &>/dev/null; then
+        pg_isready -h "$PG_HOST" -p "$PG_PORT" -q 2>/dev/null && break
+      fi
+      sleep 1
+    done
+    if pg_isready -h "$PG_HOST" -p "$PG_PORT" -q 2>/dev/null; then
+      ok "PostgreSQL started"
+      return 0
+    fi
   fi
-fi
+  die "PostgreSQL is NOT reachable at ${PG_HOST}:${PG_PORT}. Start it manually."
+}
+ensure_pg
 
-# ── Step 2 — Check Redis ───────────────────────────────────────────────────────
+# ── Step 2 — Ensure Redis is running ──────────────────────────────────────────
 
 step "Checking Redis..."
 
 REDIS_HOST="${REDIS_HOST:-localhost}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 
-if command -v redis-cli &>/dev/null; then
-  if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING | grep -q PONG; then
-    ok "Redis is ready"
-  else
-    die "Redis is NOT reachable at ${REDIS_HOST}:${REDIS_PORT}. Start it first."
+# Try known Redis install locations
+REDIS_SERVER=""
+for candidate in \
+  "D:/redis/Redis-x64-5.0.14.1/redis-server.exe" \
+  "E:/redis/Redis-x64-5.0.14.1/redis-server.exe" \
+  "C:/redis/Redis-x64-5.0.14.1/redis-server.exe"; do
+  if [ -f "$candidate" ]; then
+    REDIS_SERVER="$candidate"
+    break
   fi
-else
-  if (echo >/dev/tcp/"$REDIS_HOST"/"$REDIS_PORT") 2>/dev/null; then
-    ok "Redis port is open (redis-cli not found, tcp check only)"
-  else
-    die "Redis port ${REDIS_PORT} is NOT open. Start it first."
+done
+
+ensure_redis() {
+  # Already running?
+  if command -v redis-cli &>/dev/null; then
+    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING 2>/dev/null | grep -q PONG; then
+      ok "Redis is ready"
+      return 0
+    fi
   fi
-fi
+  # Auto-start if redis-server found
+  if [ -n "$REDIS_SERVER" ]; then
+    step "Redis not running — starting..."
+    "$REDIS_SERVER" --port "$REDIS_PORT" --maxmemory 128mb &
+    # Wait up to 5 s for it to be ready
+    for i in $(seq 1 5); do
+      sleep 1
+      if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING 2>/dev/null | grep -q PONG; then
+        ok "Redis started"
+        return 0
+      fi
+    done
+    # Port might already be in use by another Redis instance
+    if (netstat -ano 2>/dev/null | grep ":${REDIS_PORT} " | grep -q LISTENING); then
+      ok "Redis port is occupied (already running)"
+      return 0
+    fi
+  fi
+  die "Redis is NOT reachable at ${REDIS_HOST}:${REDIS_PORT}. Start it manually."
+}
+ensure_redis
 
 # ── Step 3 — Install Python dependencies ───────────────────────────────────────
 

@@ -38,7 +38,7 @@ async def create_agent(
     model_provider: str,
     model_name: str,
     description: str | None = None,
-    tools_enabled: dict | None = None,
+    enabled_tools: list[str] | None = None,
     knowledge_base_ids: list[UUID] | None = None,
     prompt_template_id: UUID | None = None,
 ) -> UUID:
@@ -52,7 +52,7 @@ async def create_agent(
         model_provider: 模型提供商（如 "openai", "anthropic"）。
         model_name: 模型名称（如 "gpt-4o", "claude-sonnet-4"）。
         description: 可选描述。
-        tools_enabled: 工具开关配置，如 {"calculator": true, "web_search": false}。
+        enabled_tools: 启用的预定义工具名数组，如 ["calculator", "web_search"]。
         knowledge_base_ids: 可选关联知识库 ID 列表。
         prompt_template_id: 可选绑定的 Prompt 模板 ID。
 
@@ -61,8 +61,8 @@ async def create_agent(
     """
     # TODO: Validate prompt_template_id exists via prompt service (by ID)
     # TODO: Validate knowledge_base_ids exist via knowledge service (by ID)
-    # TODO: Validate tools are in allowed list from provider/
-    # TODO: Create Agent + M:N links in agent_knowledge_bases and agent_tools
+    # TODO: Validate enabled_tools are in the allowed predefined-tool list
+    # TODO: Create Agent (+ M:N links in agent_knowledge_bases); store enabled_tools JSON
     ...
     raise NotImplementedError("create_agent not yet implemented")
 

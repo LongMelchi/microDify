@@ -1,85 +1,89 @@
 # microDify 架构图谱
 
-## 模块依赖层级图
+## 组件关系流程图
 
 ```
-Level 0 ─────────────────────────────────────────────
-                    ┌─────────┐
-                    │  core/  │  配置 · 数据库 · 安全 · 异常
-                    └────┬────┘
-          ┌──────────────┼──────────────┐
-          ↓              ↓              ↓
-Level 1  ┌──────┐   ┌────────┐    ┌─────────┐
-         │common│   │provider│    │  auth/  │
-         │ 队列  │   │ LLM网关│    │ JWT认证 │
-         │ 限流  │   │ 嵌入   │    │ 账号管理 │
-         │ 存储  │   └───┬────┘    └────┬────┘
-         └──┬───┘       │              │
-            │           │              │
-            ↓           ├──────────────┤
-Level 2  ┌─────────┐    ↓              ↓
-         │knowledge│  ┌─────┐    ┌──────────┐
-         │ 文档管理 │  │ rag │    │ prompt/  │
-         │ 解析分块 │  │检索  │    │ 模板管理  │
-         └─────────┘  │重排序│    │ 变量插值  │
-                      └──┬──┘    └────┬──────┘
-                         │            │
-            ┌────────────┼────────────┤
-            ↓            ↓            ↓
-Level 3  ┌────────┐  ┌───────┐  ┌──────────┐
-         │ agent/ │  │ chat/ │  │workflow/ │
-         │ReAct   │  │对话   │  │工作流    │
-         │工具调用│  │SSE    │  │节点执行   │
-         └────────┘  └───────┘  └──────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        HTTP 请求入口                                  │
+│  Caddy :443 / Next.js :3000 ──rewrites──→ FastAPI :8000             │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │   Middleware Stack       │
+                    │  ┌────────────────────┐  │
+                    │  │ RequestLogging     │  │  ← request_id 生成
+                    │  │ + Runtime Metrics  │  │  ← total_requests++
+                    │  └────────┬───────────┘  │  ← status_counts 分桶
+                    │           │              │
+                    │  ┌────────┴───────────┐  │
+                    │  │ CORS              │  │
+                    │  └────────┬───────────┘  │
+                    │           │              │
+                    └───────────┼──────────────┘
+                                │
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+              ▼                 ▼                 ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│  auth/          │ │  provider/      │ │  (空 routing)    │
+│                 │ │                 │ │                 │
+│ POST /login ────┤ │ GET  /status ───┤ │ chat/           │
+│  │              │ │ POST /test-chat │ │ agent/          │
+│  │              │ │       │         │ │ workflow/       │
+│  ▼              │ │       ▼         │ │ knowledge/      │
+│ service.auth ───┤ │ LLMGateway ────┐│ │ prompt/         │
+│  │      │       │ │   │            ││ │                 │
+│  │      │       │ │   ▼            ││ └─────────────────┘
+│  │      │       │ │ ProviderRegistry                 
+│  │      │       │ │   ├─ OpenAI   ──→ DeepSeek API      
+│  │      │       │ │   └─ Anthropic──→ DeepSeek API      
+│  │      │       │ └─────────────────┘
+│  │      │       │
+│  ▼      ▼       │
+│ User   Redis    │
+│ Model  Client   │
+│                 │
+└────────┬────────┘
+         │
+    ┌────┴────┐        ┌─────────────┐
+    │PostgreSQL│        │    Redis    │
+    │  + pgvector       │  限流+队列   │
+    │  17 tables│        │  localhost  │
+    └──────────┘        └─────────────┘
 ```
 
-依赖方向严格从上到下，没有任何箭头指向上层。
+---
 
-### 层级说明
-
-| 层级 | 模块 | 依赖 |
-|------|------|------|
-| **Level 0** | core/ | 零依赖，只被依赖 |
-| **Level 1** | common/、provider/、auth/ | 只依赖 core/ |
-| **Level 2** | knowledge/、rag/、prompt/ | 依赖 Level 0-1 |
-| **Level 3** | agent/、chat/、workflow/ | 依赖 Level 0-2，业务聚合层 |
-
-## 请求流转路径
+## 运行时请求流转（以 POST /auth/login 为例）
 
 ```
-                    Internet / 内网
-                          │
-                          ▼
-                   ┌─────────────┐
-                   │   Caddy     │  :443 (HTTPS)
-                   │  反向代理    │  :80  (HTTP→HTTPS 重定向)
-                   └──────┬──────┘
-                          │
-               ┌──────────┼──────────┐
-               │          │          │
-          /api/*     /_next/*     /*
-          (API)     (静态资源)   (前端页面)
-               │          │          │
-               ▼          ▼          ▼
-         FastAPI:8000  直接返回    index.html
-               │        .next/     (SPA fallback)
-               │        static/
-               │
-        ┌──────┼──────┐
-        │      │      │
-        ▼      ▼      ▼
-     ┌────┐ ┌────┐ ┌──────────┐
-     │ PG │ │Redis│ │ LLM API  │
-     │:5432│ │:6379│ │(外部网络) │
-     └────┘ └────┘ └──────────┘
+1. HTTP Request
+   │  POST /auth/login  {"email":"...","password":"..."}
+   ▼
+2. RequestLoggingMiddleware
+   │  request_id = a3f8b2c1
+   │  total_requests += 1
+   ▼
+3. Auth Router
+   │  Depends(get_db)     → AsyncSession
+   │  Depends(get_redis)  → RedisClient | None
+   ▼
+4. Rate Limit Check
+   │  redis.incr("rate_limit:auth_login:login_failed:admin@...")
+   │  超过 5 次 → 429
+   ▼
+5. Auth Service
+   │  get_user_by_email(db, email)
+   │  verify_password(plain, hashed)
+   │  create_token(user_id) → JWT
+   ▼
+6. Result.ok(TokenResponse)
+   │  {"code":200,"data":{"access_token":"eyJ..."}}
+   ▼
+7. RequestLoggingMiddleware (finally)
+   │  status_counts["200"] += 1
+   │  log: method=POST path=/auth/login status=200 duration_ms=45.2
+   │  Response Header: X-Request-ID: a3f8b2c1
+   ▼
+8. HTTP Response
 ```
-
-**五种请求路径：**
-
-| 请求类型 | 路径 | 特征 |
-|----------|------|------|
-| 页面请求 | `GET /chat/xxx` | Caddy → 返回 `index.html`（SPA 客户端路由） |
-| 静态资源 | `GET /_next/static/...` | Caddy → 直接返回构建产物，不经过 FastAPI |
-| REST API | `POST /api/auth/login` | Caddy → FastAPI → PG/Redis → JSON 响应 |
-| SSE 流式 | `POST /api/chat/{id}/messages` | Caddy → FastAPI → LLM API → 逐 token 推送 |
-| 文档上传 | `POST /api/knowledge/{id}/upload` | Caddy → FastAPI → 文件落盘 → Redis 入队 → 返回"处理中" |

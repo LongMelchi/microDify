@@ -14,6 +14,7 @@ Usage::
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,7 +50,9 @@ class Settings(BaseSettings):
 
     # --- LLM Provider ---
     openai_api_key: str = ""
+    openai_base_url: str = ""           # 留空 = 使用 OpenAI 默认地址
     anthropic_api_key: str = ""
+    anthropic_base_url: str = ""        # 留空 = 使用 Anthropic 默认地址
     default_llm_model: str = "gpt-4o"
     default_embedding_model: str = "text-embedding-3-small"
 
@@ -58,7 +61,10 @@ class Settings(BaseSettings):
     embedding_provider: str = "openai"
 
     # --- Security ---
-    jwt_secret: str = "change-me-in-production"
+    # HS256 requires a key >= 32 bytes. This dev default is intentionally long
+    # enough to avoid PyJWT's InsecureKeyLengthWarning; it MUST be overridden in
+    # production (enforced below when debug is False).
+    jwt_secret: str = "dev-only-insecure-jwt-secret-change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24 hours
 
@@ -68,6 +74,16 @@ class Settings(BaseSettings):
 
     # --- Rate Limiting ---
     rate_limit_per_minute: int = 60
+
+    @model_validator(mode="after")
+    def _validate_security(self) -> "Settings":
+        """Enforce a strong JWT secret in production (``debug=False``)."""
+        if not self.debug:
+            if len(self.jwt_secret.encode("utf-8")) < 32:
+                raise ValueError("jwt_secret must be at least 32 bytes in production")
+            if self.jwt_secret.startswith("dev-only-"):
+                raise ValueError("jwt_secret must be overridden from its dev default in production")
+        return self
 
 
 @lru_cache

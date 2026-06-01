@@ -21,7 +21,6 @@ import redis.asyncio as aioredis
 from redis.asyncio.connection import ConnectionPool
 
 from app.core.config import get_settings
-from app.core.exceptions import BizException, ErrorCode
 
 settings = get_settings()
 
@@ -43,19 +42,21 @@ def _get_pool() -> ConnectionPool:
 
 
 async def get_redis() -> RedisClient | None:
-    """FastAPI dependency — returns a ``RedisClient`` or ``None`` if Redis is not configured."""
+    """FastAPI dependency — returns a ``RedisClient`` or ``None`` if Redis is unavailable."""
+    import structlog
+
+    logger = structlog.get_logger("microdify.redis")
+
     if not settings.redis_url:
         return None
-    pool = _get_pool()
-    client = aioredis.Redis(connection_pool=pool)
     try:
+        pool = _get_pool()
+        client = aioredis.Redis(connection_pool=pool)
         await client.ping()
+        return RedisClient(client)
     except Exception:
-        raise BizException(
-            ErrorCode.INTERNAL_ERROR,
-            detail="Redis 连接失败",
-        )
-    return RedisClient(client)
+        logger.warning("Redis unavailable, skipping", exc_info=True)
+        return None
 
 
 # ── Serialisation helpers ─────────────────────────────────────────────────────

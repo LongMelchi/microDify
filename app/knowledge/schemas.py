@@ -17,6 +17,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.core.schemas import CoreResponse
+
 
 # ─── KnowledgeBase ────────────────────────────────────────────────────────────
 
@@ -28,17 +30,12 @@ class KnowledgeBaseCreate(BaseModel):
     description: Optional[str] = Field(None, description="知识库描述")
 
 
-class KnowledgeBaseResponse(BaseModel):
+class KnowledgeBaseResponse(CoreResponse):
     """知识库响应"""
 
-    id: UUID
     name: str
     description: Optional[str] = None
     user_id: UUID
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class KnowledgeBaseFilter(BaseModel):

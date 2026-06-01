@@ -12,6 +12,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.core.schemas import CoreResponse
+
 
 # ── ChatApp ────────────────────────────────────────────────────────────
 
@@ -23,17 +25,12 @@ class ChatAppCreate(BaseModel):
     knowledge_base_ids: Optional[list[UUID]] = Field(None, description="Linked knowledge base IDs")
 
 
-class ChatAppResponse(BaseModel):
+class ChatAppResponse(CoreResponse):
     """Response schema for a chat application."""
-    id: UUID
     name: str
     description: Optional[str] = None
     prompt_template_id: Optional[UUID] = None
     user_id: UUID
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class ChatAppFilter(BaseModel):

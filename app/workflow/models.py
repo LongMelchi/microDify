@@ -11,17 +11,19 @@
 # References: users (owner).
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.core.database import Base
+from app.core.database import Base, TimestampsMixin
 
 
-class Workflow(Base):
-    """工作流定义"""
+class Workflow(Base, TimestampsMixin):
+    """工作流定义
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "workflows"
 
@@ -29,8 +31,6 @@ class Workflow(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, default="")
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # relationships
     nodes = relationship("WorkflowNode", back_populates="workflow", cascade="all, delete-orphan")
@@ -38,8 +38,11 @@ class Workflow(Base):
     executions = relationship("WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan")
 
 
-class WorkflowNode(Base):
-    """工作流节点"""
+class WorkflowNode(Base, TimestampsMixin):
+    """工作流节点
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "workflow_nodes"
 
@@ -50,7 +53,6 @@ class WorkflowNode(Base):
     config = Column(JSON, nullable=False, default=dict)  # type-specific configuration
     position_x = Column(Integer, default=0)
     position_y = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # relationships
     workflow = relationship("Workflow", back_populates="nodes")
@@ -58,8 +60,11 @@ class WorkflowNode(Base):
     target_edges = relationship("WorkflowEdge", foreign_keys="WorkflowEdge.target_node_id", back_populates="target_node", cascade="all, delete-orphan")
 
 
-class WorkflowEdge(Base):
-    """节点间连线"""
+class WorkflowEdge(Base, TimestampsMixin):
+    """节点间连线
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供。
+    """
 
     __tablename__ = "workflow_edges"
 
@@ -69,7 +74,6 @@ class WorkflowEdge(Base):
     target_node_id = Column(UUID(as_uuid=True), ForeignKey("workflow_nodes.id"), nullable=False)
     condition_expression = Column(Text, default="")  # empty for unconditional edges
     label = Column(String(255), default="")
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # relationships
     workflow = relationship("Workflow", back_populates="edges")
@@ -77,8 +81,12 @@ class WorkflowEdge(Base):
     target_node = relationship("WorkflowNode", foreign_keys=[target_node_id], back_populates="target_edges")
 
 
-class WorkflowExecution(Base):
-    """工作流执行记录"""
+class WorkflowExecution(Base, TimestampsMixin):
+    """工作流执行记录
+
+    时间戳（created_at / updated_at）由 ``TimestampsMixin`` 统一提供；
+    started_at / finished_at 为执行记录专用时间列，单独声明。
+    """
 
     __tablename__ = "workflow_executions"
 
@@ -92,7 +100,6 @@ class WorkflowExecution(Base):
     error_message = Column(Text, nullable=True, default=None)
     started_at = Column(DateTime(timezone=True), nullable=True, default=None)
     finished_at = Column(DateTime(timezone=True), nullable=True, default=None)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # relationships
     workflow = relationship("Workflow", back_populates="executions")

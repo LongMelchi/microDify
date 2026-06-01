@@ -1,50 +1,17 @@
-"""Base SQLAlchemy models for the common module.
+"""Common module ORM models.
 
-All model classes defined here are **abstract** — their ``__tablename__``
-will be set by concrete subclasses (or the modules that use them).
+Per CLAUDE.md §4, ``common/`` is reusable infrastructure (file storage, Redis
+queue, rate limiting, event bus) and intentionally produces **no database
+tables**:
 
-Inherits from :class:`app.core.database.Base` (the global declarative base
-shared by all microDify modules).
+    - file storage  → filesystem / object storage (path returned to caller)
+    - rate limiting → Redis ``INCR + EXPIRE`` (no audit table)
+    - queue / event → Redis lists (transient, not persisted)
+
+If a concrete business module needs to persist file/task metadata, define that
+table in *that module's* ``models.py`` (e.g. ``knowledge/`` owns its document
+rows), not here.
 """
 
-from app.core.database import Base
-
-
-class FileRecord(Base):
-    """Abstract base for uploaded-file storage records.
-
-    Concrete subclasses should set ``__tablename__`` (e.g. ``"uploaded_files"``)
-    and add columns specific to the file type (path, size, mime_type, …).
-    """
-
-    __abstract__ = True
-
-
-class QueueTask(Base):
-    """Abstract base for async queue task records.
-
-    Concrete subclasses should set ``__tablename__`` (e.g. ``"queue_tasks"``)
-    and add columns for task type, status, payload, result, etc.
-    """
-
-    __abstract__ = True
-
-
-class RateLimitLog(Base):
-    """Abstract base for rate-limit audit / counter records.
-
-    Concrete subclasses should set ``__tablename__`` (e.g. ``"rate_limit_logs"``)
-    and add columns for user_id, endpoint, window_start, count, etc.
-    """
-
-    __abstract__ = True
-
-
-class EventLog(Base):
-    """Abstract base for event bus audit records.
-
-    Concrete subclasses should set ``__tablename__`` (e.g. ``"event_logs"``)
-    and add columns for event_type, payload, source, created_at, etc.
-    """
-
-    __abstract__ = True
+# No models defined — common has no database tables.
+# from app.core.database import Base  # available if a future shared table is justified

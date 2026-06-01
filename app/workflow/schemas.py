@@ -13,6 +13,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.core.schemas import CoreResponse
+
 
 # Workflow ──────────────────────────────────────────────────────────────
 
@@ -21,14 +23,11 @@ class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="Workflow name")
     description: str = Field("", max_length=500, description="Optional description")
 
-class WorkflowResponse(BaseModel):
+class WorkflowResponse(CoreResponse):
     """Response schema for a workflow."""
-    id: str = Field(..., description="UUID of the workflow")
     user_id: str = Field(..., description="UUID of the owner")
     name: str = Field(..., description="Workflow name")
     description: str = Field("", description="Optional description")
-    created_at: datetime = Field(..., description="Creation timestamp")
-    updated_at: datetime = Field(..., description="Last update timestamp")
 
 class WorkflowFilter(BaseModel):
     """Filter / query parameters for listing workflows."""

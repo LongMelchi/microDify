@@ -7,10 +7,12 @@ Public exports:
 """
 
 from app.auth.router import router
-from app.auth.service import authenticate, create_user
+from app.auth.service import authenticate, create_user, get_user, get_user_by_email
 
 __all__ = [
     "router",
     "authenticate",
     "create_user",
+    "get_user",
+    "get_user_by_email",
 ]

@@ -24,8 +24,8 @@ settings = get_settings()
 
 engine = create_async_engine(
     settings.database_url,
-    pool_size=10,
-    max_overflow=5,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
     echo=settings.debug,
 )
 
@@ -79,10 +79,20 @@ class SoftDeleteMixin:
 
 
 class Base(DeclarativeBase):
-    """Declarative base for all ORM models.
+    """The single declarative base for all ORM models.
 
-    Every model in the project should inherit from this class or from
-    ``CoreModel`` (which itself inherits from ``Base``).
+    Every model in the project inherits from this class, and should mix in
+    ``TimestampsMixin`` (and ``SoftDeleteMixin`` when soft-delete is needed)
+    rather than re-declaring ``created_at`` / ``updated_at`` by hand::
+
+        class ChatApp(Base, TimestampsMixin):
+            __tablename__ = "chat_apps"
+            id: Mapped[uuid.UUID] = mapped_column(
+                UUID(as_uuid=True),
+                primary_key=True,
+                server_default=func.gen_random_uuid(),
+            )
+            ...
     """
 
     pass

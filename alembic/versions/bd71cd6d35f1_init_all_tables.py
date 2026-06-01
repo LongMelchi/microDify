@@ -36,8 +36,8 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('user_id', sa.UUID(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -49,8 +49,8 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('description', sa.String(length=500), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -60,8 +60,8 @@ def upgrade() -> None:
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -74,7 +74,7 @@ def upgrade() -> None:
     sa.Column('system_prompt', sa.Text(), nullable=False),
     sa.Column('model_provider', sa.String(length=64), nullable=False),
     sa.Column('model_name', sa.String(length=128), nullable=False),
-    sa.Column('tools_enabled', sa.JSON(), nullable=False),
+    sa.Column('enabled_tools', sa.JSON(), nullable=False),
     sa.Column('status', sa.String(length=32), nullable=False),
     sa.Column('prompt_template_id', sa.UUID(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -105,8 +105,8 @@ def upgrade() -> None:
     sa.Column('file_size', sa.Integer(), nullable=False),
     sa.Column('file_path', sa.String(length=1024), nullable=False),
     sa.Column('status', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['knowledge_base_id'], ['knowledge_bases.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -123,7 +123,8 @@ def upgrade() -> None:
     sa.Column('error_message', sa.Text(), nullable=True),
     sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['workflow_id'], ['workflows.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -138,7 +139,8 @@ def upgrade() -> None:
     sa.Column('config', sa.JSON(), nullable=False),
     sa.Column('position_x', sa.Integer(), nullable=True),
     sa.Column('position_y', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['workflow_id'], ['workflows.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -170,12 +172,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['knowledge_base_id'], ['knowledge_bases.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('agent_id', 'knowledge_base_id')
     )
-    op.create_table('agent_tools',
-    sa.Column('agent_id', sa.UUID(), nullable=False),
-    sa.Column('tool_id', sa.String(length=128), nullable=False),
-    sa.ForeignKeyConstraint(['agent_id'], ['agents.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('agent_id', 'tool_id')
-    )
     op.create_table('chat_app_knowledge_bases',
     sa.Column('chat_app_id', sa.UUID(), nullable=False),
     sa.Column('knowledge_base_id', sa.UUID(), nullable=False),
@@ -189,7 +185,8 @@ def upgrade() -> None:
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=1536), nullable=True),
     sa.Column('chunk_index', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -214,7 +211,8 @@ def upgrade() -> None:
     sa.Column('target_node_id', sa.UUID(), nullable=False),
     sa.Column('condition_expression', sa.Text(), nullable=True),
     sa.Column('label', sa.String(length=255), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['source_node_id'], ['workflow_nodes.id'], ),
     sa.ForeignKeyConstraint(['target_node_id'], ['workflow_nodes.id'], ),
     sa.ForeignKeyConstraint(['workflow_id'], ['workflows.id'], ),
@@ -227,6 +225,7 @@ def upgrade() -> None:
     sa.Column('role', sa.String(length=32), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -246,7 +245,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_chunks_document_id'), table_name='chunks')
     op.drop_table('chunks')
     op.drop_table('chat_app_knowledge_bases')
-    op.drop_table('agent_tools')
     op.drop_table('agent_knowledge_bases')
     op.drop_index(op.f('ix_agent_executions_user_id'), table_name='agent_executions')
     op.drop_index(op.f('ix_agent_executions_agent_id'), table_name='agent_executions')
