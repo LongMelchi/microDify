@@ -1,20 +1,13 @@
-/**
- * Agent detail / config page.
- * TODO: render agent config form (system prompt, model selection, tool toggles, knowledge bindings).
- */
 export default async function AgentDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="mb-6 text-2xl font-bold">Agent #{id}</h1>
-      <p className="text-gray-500">
-        Agent configuration form will be rendered here.
-      </p>
+    <div>
+      <h1 className="text-2xl font-bold mb-2">Agent 配置</h1>
+      <p className="text-[var(--color-text-secondary)]">Agent #{id} — 编辑模型、工具和知识库绑定</p>
     </div>
   );
 }

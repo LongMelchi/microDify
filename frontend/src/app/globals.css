@@ -1,1 +1,85 @@
 @import "tailwindcss";
+
+/* ═══ microDify Design Tokens — Clay/Neubrutalism ═══ */
+@theme {
+  /* Brand */
+  --color-primary:        #5B5FE3;
+  --color-primary-hover:  #4A4ECC;
+  --color-primary-light:  #EEEDFC;
+  --color-secondary:      #3ECF8E;
+  --color-secondary-hover:#2FB878;
+  --color-secondary-light:#E6F9F1;
+  --color-accent:         #F59E0B;
+  --color-accent-hover:   #D97706;
+  --color-accent-light:   #FFF7ED;
+
+  /* Neutrals */
+  --color-bg:             #F8F9FC;
+  --color-surface:        #FFFFFF;
+  --color-sidebar:        #1E1E2E;
+  --color-sidebar-hover:  #2D2D44;
+  --color-text:           #1A1A2E;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary:  #9CA3AF;
+  --color-border:         #DDE1E8;
+  --color-divider:        #E5E7EB;
+
+  /* Semantic */
+  --color-success:        #10B981;
+  --color-warning:        #F59E0B;
+  --color-error:          #EF4444;
+  --color-info:           #3B82F6;
+
+  /* Radii — shape consistency lock */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-full: 9999px;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* ═══ Base ═══ */
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ Clay shadows (tinted, not pure black) ═══ */
+.shadow-clay-sm  { box-shadow: 2px 2px 0 rgba(26, 26, 46, 0.10); }
+.shadow-clay-md  { box-shadow: 4px 4px 0 rgba(26, 26, 46, 0.10); }
+.shadow-clay-lg  { box-shadow: 6px 6px 0 rgba(26, 26, 46, 0.08); }
+
+/* ═══ Reduced motion ═══ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══ Animation Keyframes ═══ */
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

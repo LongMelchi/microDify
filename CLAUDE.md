@@ -151,7 +151,56 @@ class ChatApp(Base, TimestampsMixin):
 
 ### 文件规模硬上限
 
-`router.py` 150 行（超 → 拆子路由）｜`service.py` 400 行（超 → 提专项文件）｜`models.py` 100 行（超 → 评估拆模块）｜`schemas.py` 100 行（超 → 拆 `schemas/`）｜专项文件 300 行（超 → 继续拆）
+`router.py` 150 行（超 → 拆子路由）｜`service.py` 400 行（超 → 提专项文件）｜`models.py` 100 行（超 → 评估拆模块）｜`schemas.py` 100 行（超 → 拆 `schemas/`）｜专项文件 300 行（超 → 继续拆）｜**前端组件/Hook 150 行**（超 → 提取子组件或辅助函数）
+
+### 前端公共数据交互组件约束 🔴
+
+> 以下组件已封装了列表页最常见的 4 种重复逻辑。**后续所有页面必须使用这些组件，禁止在页面内手写等效逻辑。**
+
+| 场景 | 使用的组件/Hook | 禁止手写 |
+|------|----------------|---------|
+| 列表页表格 + 分页 + 三态 | `<DataTable>` (`src/components/ui/DataTable.tsx`) | 页面内手写 `useState(data/loading/error)` + `useEffect(fetch)` + if-else 三态切换 + 翻页逻辑 |
+| API 调用状态管理 | `useRequest()` (`src/hooks/useRequest.ts`) | 页面内手写 `useState(loading)` + `try-catch-finally` + `useEffect` 竞态防护 |
+| 删除/危险操作确认 | `useConfirm()` (`src/hooks/useConfirm.tsx`) | 页面内手写 `useState(open)` + `<Modal>` 确认框 + `onConfirm` 调 API + try-catch |
+| 操作结果通知 | `showToast()` (`src/components/ui/Toast.tsx`) | 页面内手写通知组件或 `alert()` |
+
+**DataTable 使用规范**
+
+```typescript
+// ✅ 正确：使用 DataTable
+const tableRef = useRef<DataTableHandle>(null);
+<DataTable ref={tableRef} columns={columns} fetchData={fetchData} />
+
+// ❌ 禁止：页面内手写表格三态
+const [data, setData] = useState([]);
+const [loading, setLoading] = useState(true);
+// ...
+```
+
+**useRequest 使用规范**
+
+```typescript
+// ✅ 正确：使用 useRequest
+const { data, loading, error, execute } = useRequest(() => api.getHealth());
+
+// ❌ 禁止：页面内手写 try-catch-finally
+const [data, setData] = useState(null);
+useEffect(() => { fetch().then(setData).catch(...) }, []);
+```
+
+**useConfirm 使用规范**
+
+```typescript
+// ✅ 正确：使用 useConfirm
+const { confirm, ConfirmationDialog } = useConfirm();
+const ok = await confirm(() => del(`/api/xxx/${id}`));
+
+// ❌ 禁止：页面内手写确认弹窗
+const [open, setOpen] = useState(false);
+<Modal open={open}>确定删除？<Button onClick={handleDelete}>确认</Button></Modal>
+```
+
+**跨模块影响**：这些约束仅在前端内部生效（`frontend/src/`），不涉及后端依赖白名单。
 
 ### 新增模块流程
 
