@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>microDify Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   microDify Design System - Clay / Neubrutalism
+   Standalone showcase - open directly in browser
+   ============================================================ */
+
+/* ── Design Tokens ─────────────────────────────────────── */
+:root {
+  /* Brand */
+  --color-primary:        #5B5FE3;
+  --color-primary-hover:  #4A4ECC;
+  --color-primary-light:  #EEEDFC;
+  --color-secondary:      #3ECF8E;
+  --color-secondary-hover:#2FB878;
+  --color-secondary-light:#E6F9F1;
+  --color-accent:         #F59E0B;
+  --color-accent-hover:   #D97706;
+  --color-accent-light:   #FFF7ED;
+
+  /* Neutrals */
+  --color-bg:             #F8F9FC;
+  --color-surface:        #FFFFFF;
+  --color-sidebar:        #1E1E2E;
+  --color-sidebar-hover:  #2D2D44;
+  --color-text:           #1A1A2E;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary:  #9CA3AF;
+  --color-border:         #DDE1E8;
+  --color-divider:        #E5E7EB;
+
+  /* Semantic */
+  --color-success:        #10B981;
+  --color-warning:        #F59E0B;
+  --color-error:          #EF4444;
+  --color-info:           #3B82F6;
+
+  /* Radii - shape consistency lock */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-full: 9999px;
+
+  /* Shadows - clay style, tinted not pure black */
+  --shadow-sm:  2px 2px 0 rgba(26, 26, 46, 0.10);
+  --shadow-md:  4px 4px 0 rgba(26, 26, 46, 0.10);
+  --shadow-lg:  6px 6px 0 rgba(26, 26, 46, 0.08);
+
+  /* Spacing (4pt grid) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { line-height: 1.3; }
+h1 { font-size: 24px; font-weight: 700; }
+h2 { font-size: 18px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+code, pre, .mono { font-family: var(--font-mono); }
+a { color: var(--color-primary); text-decoration: none; }
+
+/* ── Layout ───────────────────────────────────────────── */
+.ds-wrap { display: flex; min-height: 100vh; }
+.ds-sidebar {
+  width: 220px; min-width: 220px;
+  background: var(--color-sidebar);
+  color: #fff;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+}
+.ds-sidebar-brand {
+  padding: 20px; font-weight: 700; font-size: 18px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  letter-spacing: -0.01em;
+}
+.ds-sidebar-nav { padding: 12px 0; }
+.ds-sidebar-nav a {
+  display: block; padding: 8px 20px; font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,.65); transition: all var(--ease-out) 150ms;
+  border-left: 3px solid transparent;
+}
+.ds-sidebar-nav a:hover, .ds-sidebar-nav a:focus { color: #fff; background: var(--color-sidebar-hover); }
+.ds-sidebar-nav a.active { color: #fff; background: rgba(91,95,227,.2); border-left-color: var(--color-primary); }
+
+.ds-main { flex: 1; overflow-x: hidden; }
+.ds-section { padding: var(--space-12) var(--space-10); max-width: 1200px; }
+.ds-section + .ds-section { border-top: 2px solid var(--color-divider); }
+.ds-section-title { margin-bottom: var(--space-8); }
+.ds-section-title h1 { margin-bottom: var(--space-1); }
+.ds-section-title p { color: var(--color-text-secondary); font-size: 14px; }
+
+/* ── Color Swatches ───────────────────────────────────── */
+.swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); }
+.swatch {
+  border: 3px solid var(--color-text); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.swatch-color { height: 72px; }
+.swatch-label { padding: 8px 10px; background: var(--color-surface); font-size: 12px; font-weight: 500; }
+.swatch-label span { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+
+/* ── Token Table ──────────────────────────────────────── */
+.token-table { width: 100%; border-collapse: collapse; }
+.token-table th, .token-table td { text-align: left; padding: 10px 14px; font-size: 13px; }
+.token-table th { font-weight: 600; color: var(--color-text-secondary); border-bottom: 2px solid var(--color-border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.token-table td { border-bottom: 1px solid var(--color-divider); }
+.token-table .preview-box { display: inline-block; width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--color-border); vertical-align: middle; margin-right: 8px; }
+.token-table .preview-box.circle { border-radius: 50%; }
+.token-table .preview-box.shadow-preview { background: #fff; }
+
+/* ── Buttons ──────────────────────────────────────────── */
+.btn-group { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-bottom: var(--space-4); }
+.btn-group-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); min-width: 100%; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 20px; font-size: 14px; font-weight: 600;
+  border-radius: var(--radius-md); border: 3px solid var(--color-text);
+  cursor: pointer; transition: all var(--ease-out) 150ms;
+  font-family: var(--font-sans); line-height: 1;
+  min-height: 44px; /* touch target */
+}
+.btn:hover { transform: translate(2px, 2px); }
+.btn:active { transform: scale(0.98) translate(1px, 1px); }
+.btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.btn-primary { background: var(--color-primary); color: #fff; box-shadow: var(--shadow-md); }
+.btn-primary:hover { background: var(--color-primary-hover); box-shadow: var(--shadow-sm); }
+
+.btn-secondary { background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-md); }
+.btn-secondary:hover { background: var(--color-bg); box-shadow: var(--shadow-sm); }
+
+.btn-danger { background: var(--color-surface); color: var(--color-error); border-color: var(--color-error); box-shadow: 4px 4px 0 rgba(239,68,68,.15); }
+.btn-danger:hover { background: #fef2f2; box-shadow: 2px 2px 0 rgba(239,68,68,.15); }
+
+.btn-ghost { background: transparent; color: var(--color-text-secondary); border-color: transparent; box-shadow: none; }
+.btn-ghost:hover { background: var(--color-bg); color: var(--color-text); box-shadow: none; transform: none; }
+
+.btn-sm { padding: 6px 14px; font-size: 13px; min-height: 36px; border-width: 2px; }
+.btn-lg { padding: 14px 28px; font-size: 16px; min-height: 52px; }
+
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.btn.loading { color: transparent !important; position: relative; pointer-events: none; }
+.btn.loading::after {
+  content: ""; position: absolute; width: 18px; height: 18px;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Inputs ───────────────────────────────────────────── */
+.form-group { margin-bottom: var(--space-5); max-width: 480px; }
+.form-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: var(--space-2); }
+.form-label .required { color: var(--color-error); margin-left: 2px; }
+.form-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: var(--space-1); }
+
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 10px 14px; font-size: 14px; font-family: var(--font-sans);
+  border: 2px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); color: var(--color-text);
+  transition: border-color var(--ease-out) 150ms, box-shadow var(--ease-out) 150ms;
+  min-height: 44px;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none; border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.form-input.error, .form-select.error, .form-textarea.error { border-color: var(--color-error); }
+.form-input.error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+.form-error { font-size: 12px; color: var(--color-error); margin-top: var(--space-1); font-weight: 500; }
+.form-textarea { min-height: 100px; resize: vertical; }
+.form-input:disabled { background: var(--color-bg); color: var(--color-text-tertiary); cursor: not-allowed; }
+
+/* ── Custom Select (Clay style dropdown) ──────────────── */
+.ds-select { position: relative; user-select: none; }
+.ds-select-trigger {
+  width: 100%; padding: 10px 38px 10px 14px; font-size: 14px; font-family: var(--font-sans);
+  border: 2px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); color: var(--color-text); min-height: 44px;
+  cursor: pointer; text-align: left; line-height: 1.4;
+  transition: border-color var(--ease-out) 150ms, box-shadow var(--ease-out) 150ms;
+  position: relative;
+}
+.ds-select-trigger:hover { border-color: var(--color-text-secondary); }
+.ds-select-trigger:focus, .ds-select.open .ds-select-trigger {
+  outline: none; border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.ds-select-trigger::after {
+  content: ""; position: absolute; right: 14px; top: 50%; margin-top: -3px;
+  width: 8px; height: 8px; border-right: 2px solid var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-text-secondary);
+  transform: rotate(45deg); transition: transform var(--ease-out) 200ms;
+}
+.ds-select.open .ds-select-trigger::after { transform: rotate(-135deg); margin-top: -1px; }
+.ds-select-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  background: var(--color-surface); border: 3px solid var(--color-text);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+  list-style: none; max-height: 200px; overflow-y: auto; display: none;
+  padding: 4px;
+}
+.ds-select.open .ds-select-dropdown { display: block; }
+.ds-select-option {
+  padding: 9px 14px; font-size: 14px; font-family: var(--font-sans); font-weight: 500;
+  border-radius: 6px; cursor: pointer; transition: background var(--ease-out) 100ms;
+}
+.ds-select-option:hover { background: var(--color-primary-light); color: var(--color-primary); }
+.ds-select-option.selected { background: var(--color-primary-light); color: var(--color-primary); font-weight: 600; }
+.ds-select-option .option-desc { font-size: 12px; color: var(--color-text-tertiary); font-weight: 400; margin-top: 1px; }
+
+/* Switch */
+.switch-wrap { display: flex; align-items: center; gap: var(--space-3); }
+.switch {
+  width: 44px; height: 24px; border-radius: var(--radius-full);
+  border: 2px solid var(--color-border); background: var(--color-bg);
+  cursor: pointer; position: relative; transition: all var(--ease-out) 150ms;
+}
+.switch.on { background: var(--color-primary); border-color: var(--color-primary); }
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  transition: transform var(--ease-out) 150ms;
+}
+.switch.on::after { transform: translateX(20px); }
+.switch:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* Checkbox / Radio */
+.check-group { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
+.check-group input[type="checkbox"], .check-group input[type="radio"] {
+  width: 18px; height: 18px; accent-color: var(--color-primary);
+}
+.check-label { font-size: 14px; }
+
+/* ── Tags & Badges ────────────────────────────────────── */
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 12px; font-size: 12px; font-weight: 600;
+  border-radius: var(--radius-full); border: 2px solid var(--color-text);
+  line-height: 1.5;
+}
+.tag-default { background: var(--color-bg); color: var(--color-text); }
+.tag-primary { background: var(--color-primary-light); color: var(--color-primary); }
+.tag-success { background: var(--color-secondary-light); color: #059669; }
+.tag-warning { background: var(--color-accent-light); color: #b45309; }
+.tag-error { background: #fef2f2; color: #dc2626; }
+.tag-info { background: #eff6ff; color: #2563eb; }
+
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  font-size: 11px; font-weight: 700; color: #fff;
+  background: var(--color-error); border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+}
+
+/* ── Cards ────────────────────────────────────────────── */
+.card {
+  background: var(--color-surface); border: 3px solid var(--color-text);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+  transition: transform var(--ease-out) 150ms, box-shadow var(--ease-out) 150ms;
+}
+.card:hover { transform: translate(2px, 2px); box-shadow: var(--shadow-sm); }
+.card-body { padding: var(--space-6); }
+.card-header { padding: var(--space-5) var(--space-6); border-bottom: 2px solid var(--color-divider); font-weight: 600; font-size: 15px; }
+.card-footer { padding: var(--space-4) var(--space-6); border-top: 2px solid var(--color-divider); }
+
+.stat-card { text-align: center; }
+.stat-card .stat-value { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--color-primary); }
+.stat-card .stat-label { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+.stat-card .stat-change { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.stat-card .stat-change.up { color: var(--color-success); }
+.stat-card .stat-change.down { color: var(--color-error); }
+
+/* ── Table ────────────────────────────────────────────── */
+.ds-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ds-table thead { background: var(--color-bg); }
+.ds-table th {
+  padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-border);
+}
+.ds-table td { padding: 12px 16px; border-bottom: 1px solid var(--color-divider); }
+.ds-table tbody tr:nth-child(even) { background: rgba(248,249,252,.5); }
+.ds-table tbody tr:hover { background: var(--color-primary-light); }
+.ds-table .actions { text-align: left; }
+.ds-table-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-6); border-top: 2px solid var(--color-divider);
+  font-size: 13px; color: var(--color-text-secondary);
+}
+.pagination { display: flex; gap: 4px; }
+.pagination button {
+  width: 36px; height: 36px; border: 2px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: all var(--ease-out) 150ms;
+}
+.pagination button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.pagination button.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+/* ── Chat Bubbles ─────────────────────────────────────── */
+.chat-area { background: var(--color-bg); border-radius: var(--radius-lg); padding: var(--space-6); max-width: 720px; }
+.chat-msg { display: flex; gap: var(--space-3); margin-bottom: var(--space-5); }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-msg-avatar {
+  width: 36px; height: 36px; border-radius: var(--radius-sm); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; border: 2px solid var(--color-text);
+}
+.chat-msg.user .chat-msg-avatar { background: var(--color-primary); color: #fff; }
+.chat-msg.assistant .chat-msg-avatar { background: var(--color-secondary-light); color: var(--color-secondary); }
+
+.chat-bubble {
+  max-width: 70%; padding: 12px 16px; border-radius: var(--radius-md);
+  font-size: 14px; line-height: 1.55; border: 3px solid var(--color-text);
+}
+.chat-msg.user .chat-bubble { background: var(--color-primary-light); border-radius: var(--radius-md) var(--radius-md) 4px var(--radius-md); }
+.chat-msg.assistant .chat-bubble { background: var(--color-surface); box-shadow: var(--shadow-sm); border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px; }
+
+.chat-streaming .cursor-blink {
+  display: inline-block; width: 2px; height: 16px; background: var(--color-primary);
+  animation: blink .8s step-end infinite; vertical-align: text-bottom; margin-left: 2px;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.chat-thinking { font-size: 12px; color: var(--color-text-tertiary); font-style: italic; margin-bottom: var(--space-2); }
+.chat-citation {
+  margin-top: var(--space-2); padding: 8px 12px; background: var(--color-bg);
+  border-radius: var(--radius-sm); border: 2px solid var(--color-border);
+  font-size: 12px; display: flex; align-items: center; gap: 6px;
+}
+
+/* ── Agent Card ───────────────────────────────────────── */
+.agent-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-5); }
+.agent-card .agent-icon {
+  width: 48px; height: 48px; border-radius: var(--radius-sm);
+  background: var(--color-primary-light); border: 3px solid var(--color-text);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--color-primary);
+}
+.agent-card .agent-meta { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-3); }
+.agent-card .agent-status {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+}
+.agent-card .agent-status::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%;
+}
+.agent-card .agent-status.online::before { background: var(--color-success); }
+.agent-card .agent-status.offline::before { background: var(--color-text-tertiary); }
+
+/* ── Modal ────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(26,26,46,.35); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-panel {
+  background: var(--color-surface); border: 3px solid var(--color-text);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  width: 90%; max-width: 480px; animation: modalIn var(--ease-out) 250ms;
+}
+@keyframes modalIn { from { opacity: 0; transform: scale(.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.modal-panel .modal-header { padding: var(--space-5) var(--space-6); border-bottom: 2px solid var(--color-divider); font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: space-between; }
+.modal-panel .modal-body { padding: var(--space-6); }
+.modal-panel .modal-footer { padding: var(--space-4) var(--space-6); border-top: 2px solid var(--color-divider); display: flex; justify-content: flex-end; gap: var(--space-3); }
+
+/* ── Toast ────────────────────────────────────────────── */
+.toast-stack { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: var(--space-3); }
+.toast {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 14px 18px; border-radius: var(--radius-md);
+  border: 3px solid var(--color-text); box-shadow: var(--shadow-md);
+  background: var(--color-surface); font-size: 14px; font-weight: 500;
+  min-width: 320px; animation: toastIn var(--ease-out) 300ms;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+.toast-success { border-color: var(--color-success); }
+.toast-error { border-color: var(--color-error); }
+.toast-warning { border-color: var(--color-warning); }
+.toast-info { border-color: var(--color-info); }
+.toast-icon { font-size: 18px; flex-shrink: 0; }
+.toast-close { margin-left: auto; cursor: pointer; font-size: 18px; color: var(--color-text-tertiary); background: none; border: none; }
+
+/* ── Skeleton ─────────────────────────────────────────── */
+.skeleton { background: linear-gradient(90deg, var(--color-divider) 25%, #f0f1f4 37%, var(--color-divider) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: var(--radius-sm); }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.skeleton-row { display: flex; gap: var(--space-3); padding: 12px 0; }
+.skeleton-row .skeleton-box:first-child { width: 40px; height: 40px; }
+.skeleton-row .skeleton-box:last-child { flex: 1; height: 16px; }
+
+/* ── Empty State ──────────────────────────────────────── */
+.empty-state { text-align: center; padding: var(--space-12) var(--space-6); }
+.empty-state .empty-icon {
+  width: 64px; height: 64px; margin: 0 auto var(--space-4);
+  border-radius: 50%; background: var(--color-bg); border: 3px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  color: var(--color-text-tertiary);
+}
+.empty-state h3 { margin-bottom: var(--space-2); }
+.empty-state p { color: var(--color-text-secondary); margin-bottom: var(--space-5); max-width: 320px; margin-left: auto; margin-right: auto; }
+
+/* ── Sidebar Layout Preview ───────────────────────────── */
+.layout-preview { border: 3px solid var(--color-text); border-radius: var(--radius-lg); overflow: hidden; }
+.layout-preview .lp-inner { display: flex; }
+.layout-preview .lp-side {
+  width: 200px; background: var(--color-sidebar); color: #fff; padding: var(--space-4);
+  font-size: 13px;
+}
+.layout-preview .lp-side .lp-brand { font-weight: 700; margin-bottom: var(--space-4); font-size: 15px; }
+.layout-preview .lp-side .lp-nav-item { padding: 6px 10px; border-radius: 6px; margin-bottom: 2px; font-size: 13px; color: rgba(255,255,255,.6); }
+.layout-preview .lp-side .lp-nav-item.active { background: rgba(91,95,227,.25); color: #fff; border-left: 3px solid var(--color-primary); }
+.layout-preview .lp-main { flex: 1; background: var(--color-bg); padding: var(--space-6); }
+.layout-preview .lp-topbar { height: 40px; background: var(--color-surface); border: 2px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-5); display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: var(--color-text-secondary); }
+.layout-preview .lp-content { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4); }
+.layout-preview .lp-card { background: var(--color-surface); border: 2px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); }
+
+/* ── Divider ──────────────────────────────────────────── */
+.section-divider { border: none; border-top: 2px solid var(--color-divider); margin: var(--space-8) 0; }
+
+/* ── Misc Utility ─────────────────────────────────────── */
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.items-center { align-items: center; }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-5 { margin-bottom: var(--space-5); }
+.mb-6 { margin-bottom: var(--space-6); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 12px; }
+.text-secondary { color: var(--color-text-secondary); }
+.font-mono { font-family: var(--font-mono); }
+
+/* ── Login Page ──────────────────────────────────────── */
+.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--color-bg); }
+.login-card { width: 100%; max-width: 420px; }
+.login-card .login-header { text-align: center; margin-bottom: var(--space-6); }
+.login-card .login-header h1 { margin-bottom: var(--space-2); }
+.login-card .login-header p { color: var(--color-text-secondary); font-size: 14px; }
+.login-divider { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-5) 0; color: var(--color-text-tertiary); font-size: 12px; }
+.login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: var(--color-divider); }
+
+/* ── Dashboard ────────────────────────────────────────── */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-5); margin-bottom: var(--space-6); }
+.dash-section-title { font-size: 16px; font-weight: 600; margin-bottom: var(--space-4); }
+.quick-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.activity-list { list-style: none; }
+.activity-item { display: flex; align-items: center; gap: var(--space-3); padding: 10px 0; border-bottom: 1px solid var(--color-divider); }
+.activity-item:last-child { border-bottom: none; }
+.activity-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--color-text); }
+.activity-dot.chat { background: var(--color-primary); }
+.activity-dot.agent { background: var(--color-secondary); }
+.activity-dot.knowledge { background: var(--color-accent); }
+.activity-time { font-size: 12px; color: var(--color-text-tertiary); flex-shrink: 0; }
+
+/* ── Prompt Editor ────────────────────────────────────── */
+.prompt-editor-layout { display: grid; grid-template-columns: 1fr 320px; gap: var(--space-5); }
+@media (max-width: 768px) { .prompt-editor-layout { grid-template-columns: 1fr; } }
+.prompt-preview-box { padding: var(--space-5); background: var(--color-bg); border-radius: var(--radius-md); border: 2px solid var(--color-border); }
+.prompt-preview-box .var-highlight { background: var(--color-primary-light); color: var(--color-primary); font-weight: 600; padding: 1px 6px; border-radius: 3px; font-family: var(--font-mono); font-size: 13px; }
+.variable-list { margin-top: var(--space-4); }
+.variable-item { display: flex; align-items: center; gap: var(--space-3); padding: 8px 0; border-bottom: 1px solid var(--color-divider); }
+.variable-item:last-child { border-bottom: none; }
+
+/* ── Settings Form Layout ─────────────────────────────── */
+.settings-layout { display: grid; grid-template-columns: 200px 1fr; gap: var(--space-8); max-width: 800px; }
+@media (max-width: 768px) { .settings-layout { grid-template-columns: 1fr; } }
+.settings-nav-item { display: block; width: 100%; text-align: left; padding: 10px 14px; font-size: 14px; font-weight: 500; border-radius: var(--radius-sm); border: none; background: none; cursor: pointer; color: var(--color-text-secondary); transition: all var(--ease-out) 150ms; font-family: var(--font-sans); }
+.settings-nav-item:hover { background: var(--color-bg); color: var(--color-text); }
+.settings-nav-item.active { background: var(--color-primary-light); color: var(--color-primary); font-weight: 600; }
+.avatar-upload { width: 80px; height: 80px; border-radius: var(--radius-lg); border: 3px dashed var(--color-border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; color: var(--color-text-tertiary); transition: all var(--ease-out) 150ms; background: var(--color-bg); }
+.avatar-upload:hover { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-light); }
+
+@media (max-width: 768px) {
+  .ds-wrap { flex-direction: column; }
+  .ds-sidebar { width: 100%; min-width: 0; height: auto; position: static; }
+  .ds-sidebar-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px; }
+  .ds-sidebar-nav a { border-left: none; border-bottom: 2px solid transparent; font-size: 12px; padding: 6px 10px; }
+  .ds-section { padding: var(--space-6) var(--space-4); }
+  .ds-table { font-size: 12px; }
+  .ds-table th, .ds-table td { padding: 8px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="ds-wrap">
+
+<!-- Sidebar -->
+<nav class="ds-sidebar" aria-label="Design System Nav">
+  <div class="ds-sidebar-brand">microDify DS</div>
+  <div class="ds-sidebar-nav">
+    <a href="#tokens" class="active">设计令牌</a>
+    <a href="#colors">颜色</a>
+    <a href="#typography">字体</a>
+    <a href="#buttons">按钮</a>
+    <a href="#forms">表单</a>
+    <a href="#tags">标签 & 徽章</a>
+    <a href="#cards">卡片</a>
+    <a href="#table">表格</a>
+    <a href="#chat">对话气泡</a>
+    <a href="#agent">Agent 卡片</a>
+    <a href="#modal">模态框</a>
+    <a href="#toast">通知 Toast</a>
+    <a href="#skeleton">骨架屏</a>
+    <a href="#empty">空状态</a>
+    <a href="#layout">页面布局</a>
+    <a href="#login">登录页面</a>
+    <a href="#dashboard">仪表盘</a>
+    <a href="#users">用户管理</a>
+    <a href="#prompt-editor">Prompt 编辑器</a>
+    <a href="#settings-page">设置页面</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="ds-main">
+
+<!-- ═══ 设计令牌 ═══ -->
+<section id="tokens" class="ds-section">
+  <div class="ds-section-title">
+    <h1>设计令牌 Design Tokens</h1>
+    <p>CSS 变量驱动的设计体系，一处定义、全局生效。令牌按语义组织：品牌色、中性色、圆角、阴影、间距、字体、动效。</p>
+  </div>
+
+  <h2 style="margin-bottom: var(--space-5)">间距 Spacing (4pt grid)</h2>
+  <table class="token-table" style="max-width: 600px; margin-bottom: var(--space-8);">
+    <thead><tr><th>Token</th><th>值</th><th>预览</th></tr></thead>
+    <tbody>
+      <tr><td><code>--space-1</code></td><td class="font-mono">4px</td><td><div style="width:4px;height:16px;background:var(--color-primary);border-radius:2px;"></div></td></tr>
+      <tr><td><code>--space-2</code></td><td class="font-mono">8px</td><td><div style="width:8px;height:16px;background:var(--color-primary);border-radius:2px;"></div></td></tr>
+      <tr><td><code>--space-4</code></td><td class="font-mono">16px</td><td><div style="width:16px;height:16px;background:var(--color-primary);border-radius:2px;"></div></td></tr>
+      <tr><td><code>--space-6</code></td><td class="font-mono">24px</td><td><div style="width:24px;height:16px;background:var(--color-primary);border-radius:2px;"></div></td></tr>
+      <tr><td><code>--space-8</code></td><td class="font-mono">32px</td><td><div style="width:32px;height:16px;background:var(--color-primary);border-radius:2px;"></div></td></tr>
+      <tr><td><code>--space-12</code></td><td class="font-mono">48px</td><td><div style="width:48px;height:16px;background:var(--color-primary);border-radius:2px;"></div></td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="margin-bottom: var(--space-5)">圆角 Radii</h2>
+  <div class="flex gap-4 flex-wrap" style="margin-bottom: var(--space-8);">
+    <div style="text-align:center">
+      <div style="width:64px;height:64px;background:var(--color-primary-light);border:3px solid var(--color-text);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">8px</div>
+      <span class="text-xs text-secondary mt-3" style="display:block;">sm</span>
+    </div>
+    <div style="text-align:center">
+      <div style="width:64px;height:64px;background:var(--color-primary-light);border:3px solid var(--color-text);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">12px</div>
+      <span class="text-xs text-secondary mt-3" style="display:block;">md</span>
+    </div>
+    <div style="text-align:center">
+      <div style="width:64px;height:64px;background:var(--color-primary-light);border:3px solid var(--color-text);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">16px</div>
+      <span class="text-xs text-secondary mt-3" style="display:block;">lg</span>
+    </div>
+    <div style="text-align:center">
+      <div style="width:64px;height:64px;background:var(--color-primary-light);border:3px solid var(--color-text);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">9999px</div>
+      <span class="text-xs text-secondary mt-3" style="display:block;">full</span>
+    </div>
+  </div>
+
+  <h2 style="margin-bottom: var(--space-5)">阴影 Shadows (tinted, not pure black)</h2>
+  <div class="flex gap-4 flex-wrap">
+    <div style="width:100px;height:80px;background:var(--color-surface);border:3px solid var(--color-text);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">sm</div>
+    <div style="width:100px;height:80px;background:var(--color-surface);border:3px solid var(--color-text);border-radius:var(--radius-md);box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">md</div>
+    <div style="width:100px;height:80px;background:var(--color-surface);border:3px solid var(--color-text);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;">lg</div>
+  </div>
+</section>
+
+<!-- ═══ 颜色 ═══ -->
+<section id="colors" class="ds-section">
+  <div class="ds-section-title"><h1>颜色 Colors</h1><p>品牌色 + 中性色 + 语义色。所有颜色通过 CSS 变量引用，禁止组件中出现裸 hex。</p></div>
+
+  <h2 class="mb-4">品牌色 Brand</h2>
+  <div class="swatch-grid mb-6">
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-primary)"></div><div class="swatch-label">Primary<span>#5B5FE3</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-primary-hover)"></div><div class="swatch-label">Primary Hover<span>#4A4ECC</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-primary-light)"></div><div class="swatch-label">Primary Light<span>#EEEDFC</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-secondary)"></div><div class="swatch-label">Secondary<span>#3ECF8E</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-secondary-light)"></div><div class="swatch-label">Secondary Light<span>#E6F9F1</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-accent)"></div><div class="swatch-label">Accent<span>#F59E0B</span></div></div>
+  </div>
+
+  <h2 class="mb-4">中性色 Neutrals</h2>
+  <div class="swatch-grid mb-6">
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-bg)"></div><div class="swatch-label">Background<span>#F8F9FC</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-surface)"></div><div class="swatch-label">Surface<span>#FFFFFF</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-sidebar)"></div><div class="swatch-label">Sidebar<span>#1E1E2E</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-text)"></div><div class="swatch-label">Text Primary<span>#1A1A2E</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-text-secondary)"></div><div class="swatch-label">Text Secondary<span>#6B7280</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-border)"></div><div class="swatch-label">Border<span>#DDE1E8</span></div></div>
+  </div>
+
+  <h2 class="mb-4">语义色 Semantic</h2>
+  <div class="swatch-grid">
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-success)"></div><div class="swatch-label">Success<span>#10B981</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-warning)"></div><div class="swatch-label">Warning<span>#F59E0B</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-error)"></div><div class="swatch-label">Error<span>#EF4444</span></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:var(--color-info)"></div><div class="swatch-label">Info<span>#3B82F6</span></div></div>
+  </div>
+</section>
+
+<!-- ═══ 字体 ═══ -->
+<section id="typography" class="ds-section">
+  <div class="ds-section-title"><h1>字体 Typography</h1><p>Inter (UI 正文) + JetBrains Mono (代码/数据)。</p></div>
+
+  <table class="token-table">
+    <thead><tr><th>层级</th><th>预览</th><th>字号 / 行高 / 字重</th><th>使用场景</th></tr></thead>
+    <tbody>
+      <tr><td>页面标题</td><td style="font-size:24px;font-weight:700;line-height:1.3;">microDify 平台</td><td>24px / 1.3 / 700</td><td>页面顶部标题</td></tr>
+      <tr><td>区块标题</td><td style="font-size:18px;font-weight:600;line-height:1.4;">Agent 配置</td><td>18px / 1.4 / 600</td><td>区块标题、卡片标题</td></tr>
+      <tr><td>正文</td><td style="font-size:14px;font-weight:400;line-height:1.6;">知识库上传完成后将自动进行向量化处理</td><td>14px / 1.6 / 400</td><td>段落、表格内容、表单标签</td></tr>
+      <tr><td>辅助文字</td><td style="font-size:12px;font-weight:400;line-height:1.5;color:var(--color-text-secondary);">2026-06-02 14:30 创建</td><td>12px / 1.5 / 400</td><td>时间戳、元数据、提示文字</td></tr>
+      <tr><td>代码/数据</td><td><code style="font-size:13px;font-weight:500;">embedding_vector[1536]</code></td><td>13px / 1.7 / 500 (JetBrains Mono)</td><td>代码块、统计数字、技术参数</td></tr>
+      <tr><td>按钮</td><td style="font-size:14px;font-weight:600;">确认提交</td><td>14px / 1 / 600</td><td>按钮、链接、Tab 标签</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 按钮 ═══ -->
+<section id="buttons" class="ds-section">
+  <div class="ds-section-title"><h1>按钮 Buttons</h1><p>4 种变体 × 3 种尺寸 + 8 个状态全覆盖。hover 时阴影收缩 + 平移，active 时 scale(0.98)。最小触摸目标 44px。</p></div>
+
+  <h3 class="mb-3">Medium (默认) 44px 高</h3>
+  <div class="btn-group">
+    <span class="btn-group-label">Primary</span>
+    <button class="btn btn-primary">创建 Agent</button>
+    <button class="btn btn-primary loading" aria-disabled="true">创建中...</button>
+    <button class="btn btn-primary" disabled>已禁用</button>
+  </div>
+  <div class="btn-group">
+    <span class="btn-group-label">Secondary</span>
+    <button class="btn btn-secondary">取消</button>
+    <button class="btn btn-secondary loading" aria-disabled="true">取消中...</button>
+    <button class="btn btn-secondary" disabled>已禁用</button>
+  </div>
+  <div class="btn-group">
+    <span class="btn-group-label">Danger</span>
+    <button class="btn btn-danger">删除知识库</button>
+    <button class="btn btn-danger loading" aria-disabled="true">删除中...</button>
+    <button class="btn btn-danger" disabled>已禁用</button>
+  </div>
+  <div class="btn-group">
+    <span class="btn-group-label">Ghost</span>
+    <button class="btn btn-ghost">查看详情</button>
+    <button class="btn btn-ghost" disabled>已禁用</button>
+  </div>
+
+  <hr class="section-divider">
+
+  <h3 class="mb-3">Small 36px</h3>
+  <div class="flex gap-3 flex-wrap items-center mb-4">
+    <button class="btn btn-primary btn-sm">保存</button>
+    <button class="btn btn-secondary btn-sm">取消</button>
+    <button class="btn btn-danger btn-sm">删除</button>
+    <button class="btn btn-ghost btn-sm">更多</button>
+  </div>
+
+  <h3 class="mb-3">Large 52px</h3>
+  <div class="flex gap-3 flex-wrap items-center mb-4">
+    <button class="btn btn-primary btn-lg">开始新对话</button>
+    <button class="btn btn-secondary btn-lg">浏览模板</button>
+  </div>
+
+  <hr class="section-divider">
+
+  <h3 class="mb-3">图标按钮</h3>
+  <div class="flex gap-3 flex-wrap items-center">
+    <button class="btn btn-primary" aria-label="添加" style="min-width:44px;padding:10px;">+</button>
+    <button class="btn btn-secondary" aria-label="设置" style="min-width:44px;padding:10px;">&#9881;</button>
+    <button class="btn btn-ghost" aria-label="更多" style="min-width:44px;padding:10px;">&#8943;</button>
+  </div>
+</section>
+
+<!-- ═══ 表单 ═══ -->
+<section id="forms" class="ds-section">
+  <div class="ds-section-title"><h1>表单 Forms</h1><p>标签在上 + 错误在下 + 聚焦高亮。禁用态灰色背景。开关、复选框、单选框均含。</p></div>
+
+  <div class="form-group">
+    <label class="form-label" for="demo-name">Agent 名称 <span class="required">*</span></label>
+    <input class="form-input" id="demo-name" type="text" placeholder="输入 Agent 名称" value="客服助手">
+    <span class="form-hint">支持中英文、数字、下划线，2-50 个字符</span>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="demo-name-err">Agent 名称 <span class="required">*</span></label>
+    <input class="form-input error" id="demo-name-err" type="text" placeholder="输入 Agent 名称" value="A">
+    <span class="form-error">名称至少需要 2 个字符</span>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="demo-model">LLM 模型</label>
+    <div class="ds-select" id="demo-model">
+      <button class="ds-select-trigger" type="button" data-value="deepseek-chat">deepseek-chat</button>
+      <ul class="ds-select-dropdown" role="listbox">
+        <li class="ds-select-option selected" data-value="deepseek-chat" role="option" aria-selected="true">
+          deepseek-chat<span class="option-desc">DeepSeek · 高性价比</span>
+        </li>
+        <li class="ds-select-option" data-value="gpt-4o" role="option" aria-selected="false">
+          gpt-4o<span class="option-desc">OpenAI · 综合能力强</span>
+        </li>
+        <li class="ds-select-option" data-value="claude-sonnet-4-6" role="option" aria-selected="false">
+          claude-sonnet-4-6<span class="option-desc">Anthropic · 代码与推理</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Embedding 模型</label>
+    <div class="ds-select" id="demo-embedding">
+      <button class="ds-select-trigger" type="button" data-value="text-embedding-3-small">text-embedding-3-small</button>
+      <ul class="ds-select-dropdown" role="listbox">
+        <li class="ds-select-option selected" data-value="text-embedding-3-small" role="option" aria-selected="true">text-embedding-3-small</li>
+        <li class="ds-select-option" data-value="text-embedding-3-large" role="option" aria-selected="false">text-embedding-3-large</li>
+        <li class="ds-select-option" data-value="text-embedding-ada-002" role="option" aria-selected="false">text-embedding-ada-002</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="demo-desc">系统指令</label>
+    <textarea class="form-textarea" id="demo-desc" placeholder="描述 Agent 的角色、任务和约束...">你是一个专业的客服助手，负责回答用户关于产品功能和使用方法的问题。请保持友好、专业的态度，用中文回复。</textarea>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="demo-disabled">禁用输入框</label>
+    <input class="form-input" id="demo-disabled" type="text" disabled value="此字段不可编辑">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">启用流式输出</label>
+    <label class="switch-wrap">
+      <div class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
+      <span class="check-label">SSE 流式返回推理过程</span>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">已启用的工具</label>
+    <div class="flex gap-3 flex-wrap" style="margin-top:var(--space-2)">
+      <label class="check-group"><input type="checkbox" checked><span class="check-label">知识库检索</span></label>
+      <label class="check-group"><input type="checkbox" checked><span class="check-label">代码执行</span></label>
+      <label class="check-group"><input type="checkbox"><span class="check-label">网页搜索</span></label>
+      <label class="check-group"><input type="checkbox"><span class="check-label">图片生成</span></label>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">模型温度</label>
+    <div class="flex gap-3 items-center">
+      <label class="check-group"><input type="radio" name="temp" value="0.1" checked><span class="check-label">精确 0.1</span></label>
+      <label class="check-group"><input type="radio" name="temp" value="0.7"><span class="check-label">平衡 0.7</span></label>
+      <label class="check-group"><input type="radio" name="temp" value="1.0"><span class="check-label">创造 1.0</span></label>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 标签 & 徽章 ═══ -->
+<section id="tags" class="ds-section">
+  <div class="ds-section-title"><h1>标签 & 徽章 Tags & Badges</h1><p>6 种语义色药丸标签 + 右上角计数徽章。药丸风格统一 border: 2px solid text。</p></div>
+
+  <div class="flex gap-3 flex-wrap items-center mb-5">
+    <span class="tag tag-default">默认</span>
+    <span class="tag tag-primary">运行中</span>
+    <span class="tag tag-success">已完成</span>
+    <span class="tag tag-warning">等待中</span>
+    <span class="tag tag-error">失败</span>
+    <span class="tag tag-info">草稿</span>
+  </div>
+
+  <div class="flex gap-3 flex-wrap items-center mb-5">
+    <span class="tag tag-primary">gpt-4o</span>
+    <span class="tag tag-success">文档问答</span>
+    <span class="tag tag-default">+3 工具</span>
+  </div>
+
+  <h3 class="mb-3">计数徽章</h3>
+  <div class="flex gap-5 flex-wrap items-center">
+    <span style="position:relative;display:inline-flex;">通知<span class="badge" style="position:absolute;top:-8px;right:-12px;">3</span></span>
+    <span style="position:relative;display:inline-flex;">消息<span class="badge" style="position:absolute;top:-8px;right:-12px;">99+</span></span>
+  </div>
+</section>
+
+<!-- ═══ 卡片 ═══ -->
+<section id="cards" class="ds-section">
+  <div class="ds-section-title"><h1>卡片 Cards</h1><p>粗边框 + 硬阴影 + hover 平移。基础卡片、统计卡片、可点击卡片。</p></div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--space-5);margin-bottom:var(--space-6);">
+    <!-- Basic card -->
+    <div class="card">
+      <div class="card-header">知识库信息</div>
+      <div class="card-body">
+        <h3 class="mb-2">产品文档库</h3>
+        <p class="text-secondary text-sm">包含产品使用手册、API 文档、FAQ 等内容，共 156 个文档片段</p>
+        <div class="flex gap-2 mt-4">
+          <span class="tag tag-primary">已发布</span>
+          <span class="tag tag-default">12 文档</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat card -->
+    <div class="card">
+      <div class="card-body stat-card">
+        <div class="stat-label">今日对话数</div>
+        <div class="stat-value">1,247</div>
+        <div class="stat-change up">+12.5%</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body stat-card">
+        <div class="stat-label">活跃 Agent</div>
+        <div class="stat-value">8</div>
+        <div class="stat-change down">-1 离线</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body stat-card">
+        <div class="stat-label">平均响应时间</div>
+        <div class="stat-value">1.4s</div>
+        <div class="stat-change up">-0.3s</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 表格 ═══ -->
+<section id="table" class="ds-section">
+  <div class="ds-section-title"><h1>表格 Data Table</h1><p>斑马纹 + hover 高亮 + 操作列右对齐。翻页组件使用游标分页模式。</p></div>
+
+  <div class="card">
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>名称</th>
+          <th>类型</th>
+          <th>状态</th>
+          <th>文档数</th>
+          <th>更新时间</th>
+          <th class="actions">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600">产品手册</td>
+          <td><span class="tag tag-primary">文档问答</span></td>
+          <td><span class="tag tag-success">已发布</span></td>
+          <td class="font-mono">156</td>
+          <td class="text-xs text-secondary">2026-06-02 14:30</td>
+          <td class="actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm" style="color:var(--color-error)">删除</button></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">API 参考</td>
+          <td><span class="tag tag-info">代码检索</span></td>
+          <td><span class="tag tag-success">已发布</span></td>
+          <td class="font-mono">89</td>
+          <td class="text-xs text-secondary">2026-06-01 09:15</td>
+          <td class="actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm" style="color:var(--color-error)">删除</button></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">内部 FAQ</td>
+          <td><span class="tag tag-primary">文档问答</span></td>
+          <td><span class="tag tag-warning">处理中</span></td>
+          <td class="font-mono">42</td>
+          <td class="text-xs text-secondary">2026-05-30 18:22</td>
+          <td class="actions"><button class="btn btn-ghost btn-sm">编辑</button><button class="btn btn-ghost btn-sm" style="color:var(--color-error)">删除</button></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">客服话术库</td>
+          <td><span class="tag tag-primary">文档问答</span></td>
+          <td><span class="tag tag-error">解析失败</span></td>
+          <td class="font-mono">7</td>
+          <td class="text-xs text-secondary">2026-05-28 11:45</td>
+          <td class="actions"><button class="btn btn-ghost btn-sm">重试</button><button class="btn btn-ghost btn-sm" style="color:var(--color-error)">删除</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="ds-table-footer">
+      <span>共 4 条</span>
+      <div class="pagination">
+        <button>&lt;</button>
+        <button class="active">1</button>
+        <button>&gt;</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 对话气泡 ═══ -->
+<section id="chat" class="ds-section">
+  <div class="ds-section-title"><h1>对话气泡 Chat Bubbles</h1><p>用户右对齐 + AI 左对齐 + 流式生成态 + 知识库引用。SSE 增量渲染模拟。</p></div>
+
+  <div class="chat-area">
+    <!-- User message -->
+    <div class="chat-msg user">
+      <div class="chat-msg-avatar">U</div>
+      <div class="chat-bubble">
+        如何将知识库绑定到 Agent？
+      </div>
+    </div>
+
+    <!-- AI response -->
+    <div class="chat-msg assistant">
+      <div class="chat-msg-avatar">AI</div>
+      <div>
+        <div class="chat-bubble">
+          在 Agent 配置页面中，你可以在"知识库"标签下选择要关联的知识库。一个 Agent 可以绑定多个知识库，绑定后 Agent 在回答时会优先检索已关联知识库中的内容。
+          <div class="chat-citation">
+            <span>&#128196;</span>
+            <span style="font-size:12px;">引用自: <strong>Agent 配置指南</strong> · 第 3 节</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User message -->
+    <div class="chat-msg user">
+      <div class="chat-msg-avatar">U</div>
+      <div class="chat-bubble">
+        它支持哪些文档格式？
+      </div>
+    </div>
+
+    <!-- Streaming -->
+    <div class="chat-msg assistant">
+      <div class="chat-msg-avatar">AI</div>
+      <div>
+        <div class="chat-thinking">正在检索知识库...</div>
+        <div class="chat-bubble">
+          目前支持的文档格式包括 PDF、DOCX、TXT、Markdown 和 CSV。上传后系统会自动进行解析和向量化处理<span class="cursor-blink"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Agent 卡片 ═══ -->
+<section id="agent" class="ds-section">
+  <div class="ds-section-title"><h1>Agent 配置卡片 Agent Cards</h1><p>Agent 摘要信息卡片：名称、模型、绑定工具、知识库数、运行状态。</p></div>
+
+  <div class="agent-card-grid">
+    <div class="card">
+      <div class="card-body">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="agent-icon">&#10003;</div>
+          <div>
+            <h3>客服助手</h3>
+            <span class="agent-status online">运行中</span>
+          </div>
+        </div>
+        <p class="text-secondary text-sm mb-3">处理用户产品咨询和故障排查，自动检索知识库并给出解决方案。</p>
+        <div class="agent-meta">
+          <span class="tag tag-primary">deepseek-chat</span>
+          <span class="tag tag-default">+3 工具</span>
+          <span class="tag tag-info">2 知识库</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="agent-icon">&#9881;</div>
+          <div>
+            <h3>代码审查员</h3>
+            <span class="agent-status offline">已停止</span>
+          </div>
+        </div>
+        <p class="text-secondary text-sm mb-3">自动审查 Pull Request 中的代码质量和安全漏洞。</p>
+        <div class="agent-meta">
+          <span class="tag tag-primary">gpt-4o</span>
+          <span class="tag tag-default">+1 工具</span>
+          <span class="tag tag-info">1 知识库</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="agent-icon">&#9998;</div>
+          <div>
+            <h3>文档写手</h3>
+            <span class="agent-status online">运行中</span>
+          </div>
+        </div>
+        <p class="text-secondary text-sm mb-3">根据需求自动生成技术文档、周报和会议纪要。</p>
+        <div class="agent-meta">
+          <span class="tag tag-primary">claude-sonnet-4-6</span>
+          <span class="tag tag-default">+2 工具</span>
+          <span class="tag tag-info">3 知识库</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 模态框 ═══ -->
+<section id="modal" class="ds-section">
+  <div class="ds-section-title"><h1>模态框 Modal</h1><p>居中弹出 + backdrop 模糊 + Escape 关闭。入场缩放淡入动画。</p></div>
+
+  <div style="position:relative;height:260px;">
+    <!-- Inline demo (not fixed-positioned for preview) -->
+    <div style="position:absolute;inset:0;background:rgba(26,26,46,.2);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;">
+      <div style="background:var(--color-surface);border:3px solid var(--color-text);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);width:90%;max-width:440px;animation:modalIn var(--ease-out) 250ms;">
+        <div style="padding:var(--space-5) var(--space-6);border-bottom:2px solid var(--color-divider);font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:space-between;">
+          删除知识库
+          <button style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--color-text-tertiary);">&times;</button>
+        </div>
+        <div style="padding:var(--space-6);">
+          <p style="font-size:14px;line-height:1.6;">确定要删除<strong>「产品手册」</strong>知识库吗？该操作将同时删除其中的 156 个文档片段，且无法恢复。</p>
+        </div>
+        <div style="padding:var(--space-4) var(--space-6);border-top:2px solid var(--color-divider);display:flex;justify-content:flex-end;gap:var(--space-3);">
+          <button class="btn btn-secondary btn-sm">取消</button>
+          <button class="btn btn-danger btn-sm">确认删除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Toast ═══ -->
+<section id="toast" class="ds-section">
+  <div class="ds-section-title"><h1>通知 Toast Notifications</h1><p>右上角弹出，4 种语义色 + 自动消失。ARIA live region 保证屏幕阅读器可读。</p></div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:380px;">
+    <div class="toast toast-success" style="position:static;animation:none;">
+      <span class="toast-icon">&#10003;</span>
+      <span>知识库「产品手册」创建成功</span>
+      <button class="toast-close">&times;</button>
+    </div>
+    <div class="toast toast-error" style="position:static;animation:none;">
+      <span class="toast-icon">&#10007;</span>
+      <span>文档解析失败：文件格式不支持</span>
+      <button class="toast-close">&times;</button>
+    </div>
+    <div class="toast toast-warning" style="position:static;animation:none;">
+      <span class="toast-icon">&#9888;</span>
+      <span>API 调用频率接近限制，请稍后重试</span>
+      <button class="toast-close">&times;</button>
+    </div>
+    <div class="toast toast-info" style="position:static;animation:none;">
+      <span class="toast-icon">&#8505;</span>
+      <span>文档正在向量化处理中，预计 3 分钟</span>
+      <button class="toast-close">&times;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 骨架屏 ═══ -->
+<section id="skeleton" class="ds-section">
+  <div class="ds-section-title"><h1>骨架屏 Skeleton Loaders</h1><p>shimmer 动画 + 匹配内容形状。优于全局 spinner，保持布局稳定。</p></div>
+
+  <h3 class="mb-4">表格骨架屏</h3>
+  <div class="card" style="padding:var(--space-6);">
+    <div class="skeleton" style="width:100%;height:32px;margin-bottom:12px;"></div>
+    <div class="skeleton-row"><div class="skeleton skeleton-box"></div><div class="skeleton skeleton-box"></div></div>
+    <div class="skeleton-row"><div class="skeleton skeleton-box"></div><div class="skeleton skeleton-box"></div></div>
+    <div class="skeleton-row"><div class="skeleton skeleton-box"></div><div class="skeleton skeleton-box"></div></div>
+    <div class="skeleton-row"><div class="skeleton skeleton-box"></div><div class="skeleton skeleton-box"></div></div>
+    <div class="skeleton-row"><div class="skeleton skeleton-box"></div><div class="skeleton skeleton-box"></div></div>
+  </div>
+
+  <h3 class="mb-4 mt-5">卡片骨架屏</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-4);">
+    <div class="card"><div class="card-body">
+      <div class="skeleton" style="width:48px;height:48px;margin-bottom:12px;"></div>
+      <div class="skeleton" style="width:70%;height:20px;margin-bottom:8px;"></div>
+      <div class="skeleton" style="width:100%;height:14px;margin-bottom:8px;"></div>
+      <div class="skeleton" style="width:50%;height:14px;"></div>
+    </div></div>
+    <div class="card"><div class="card-body">
+      <div class="skeleton" style="width:48px;height:48px;margin-bottom:12px;"></div>
+      <div class="skeleton" style="width:60%;height:20px;margin-bottom:8px;"></div>
+      <div class="skeleton" style="width:100%;height:14px;margin-bottom:8px;"></div>
+      <div class="skeleton" style="width:40%;height:14px;"></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ═══ 空状态 ═══ -->
+<section id="empty" class="ds-section">
+  <div class="ds-section-title"><h1>空状态 Empty States</h1><p>居中图标 + 标题 + 引导文案 + 行动按钮。每个数据视图都必须有空态。</p></div>
+
+  <div class="card" style="max-width:480px;">
+    <div class="empty-state">
+      <div class="empty-icon">&#128196;</div>
+      <h3>暂无知识库</h3>
+      <p>创建知识库并上传文档，Agent 将能够基于你的私有知识进行问答</p>
+      <button class="btn btn-primary">创建知识库</button>
+    </div>
+  </div>
+
+  <div class="card mt-4" style="max-width:480px;">
+    <div class="empty-state">
+      <div class="empty-icon">&#128172;</div>
+      <h3>暂无对话记录</h3>
+      <p>选择一个对话应用，开始与 AI 进行对话。你的历史记录将保存在这里</p>
+      <button class="btn btn-secondary">新建对话</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 页面布局 ═══ -->
+<section id="layout" class="ds-section">
+  <div class="ds-section-title"><h1>页面布局 Page Layout</h1><p>深色侧边栏 + 浅色内容区 + 顶部栏。标准管理后台布局。</p></div>
+
+  <div class="layout-preview">
+    <div class="lp-inner" style="min-height:360px;">
+      <div class="lp-side">
+        <div class="lp-brand">microDify</div>
+        <div class="lp-nav-item">对话</div>
+        <div class="lp-nav-item active">Agent</div>
+        <div class="lp-nav-item">知识库</div>
+        <div class="lp-nav-item">工作流</div>
+        <div class="lp-nav-item">Prompt</div>
+        <div class="lp-nav-item">模型管理</div>
+        <div class="lp-nav-item" style="margin-top:auto;opacity:.5">设置</div>
+      </div>
+      <div class="lp-main">
+        <div class="lp-topbar">Agent 管理 / 客服助手</div>
+        <div class="lp-content">
+          <div class="lp-card" style="grid-row:span 2;">统计卡片 A</div>
+          <div class="lp-card">统计 B</div>
+          <div class="lp-card">统计 C</div>
+          <div class="lp-card" style="grid-column:span 2;">表格区域</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 登录页面 ═══ -->
+<section id="login" class="ds-section">
+  <div class="ds-section-title"><h1>登录页面 Login</h1><p>居中卡片 + 邮箱/密码表单 + JWT 认证。品牌 logo 区 + 表单区。</p></div>
+
+  <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-12);display:flex;align-items:center;justify-content:center;min-height:480px;">
+    <div class="card login-card">
+      <div class="card-body" style="padding:var(--space-10);">
+        <div class="login-header">
+          <div style="width:48px;height:48px;border-radius:var(--radius-sm);background:var(--color-primary);border:3px solid var(--color-text);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700;margin-bottom:var(--space-4);">m</div>
+          <h1>登录 microDify</h1>
+          <p>使用你的团队账号登录 AI Agent 平台</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-email">邮箱地址</label>
+          <input class="form-input" id="login-email" type="text" placeholder="admin@microdify.local" value="admin@microdify.local">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-pw">密码</label>
+          <input class="form-input" id="login-pw" type="password" placeholder="输入密码" value="123456">
+        </div>
+
+        <div class="flex items-center" style="justify-content:space-between;margin-bottom:var(--space-5);">
+          <label class="check-group"><input type="checkbox" checked><span class="check-label">记住我</span></label>
+          <a href="#" style="font-size:13px;font-weight:500;">忘记密码？</a>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;">登 录</button>
+
+        <div class="login-divider">或</div>
+        <p style="text-align:center;font-size:13px;color:var(--color-text-secondary);">还没有账号？<a href="#" style="font-weight:600;">注册新账号</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 仪表盘 ═══ -->
+<section id="dashboard" class="ds-section">
+  <div class="ds-section-title"><h1>仪表盘 Dashboard</h1><p>首页概览：统计卡片 + 快捷操作 + 最近活动。全模块摘要视图。</p></div>
+
+  <!-- Stat cards -->
+  <div class="dash-grid">
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-label">活跃对话应用</div>
+      <div class="stat-value">6</div>
+      <div class="stat-change up">+2 本周</div>
+    </div></div>
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-label">Agent 运行中</div>
+      <div class="stat-value">8</div>
+      <div class="stat-change up">全部正常</div>
+    </div></div>
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-label">知识库</div>
+      <div class="stat-value">12</div>
+      <div class="stat-change up">3 个新增</div>
+    </div></div>
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-label">今日对话数</div>
+      <div class="stat-value">1,247</div>
+      <div class="stat-change up">+12.5%</div>
+    </div></div>
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-label">平均响应时间</div>
+      <div class="stat-value">1.4s</div>
+      <div class="stat-change down">-0.3s</div>
+    </div></div>
+    <div class="card"><div class="card-body stat-card">
+      <div class="stat-label">Token 用量 (今日)</div>
+      <div class="stat-value">247K</div>
+      <div class="stat-change down">-8% vs 昨日</div>
+    </div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);">
+    <!-- Quick actions -->
+    <div class="card">
+      <div class="card-header">快捷操作</div>
+      <div class="card-body">
+        <div class="quick-actions">
+          <button class="btn btn-primary btn-sm">新建对话应用</button>
+          <button class="btn btn-secondary btn-sm">创建 Agent</button>
+          <button class="btn btn-secondary btn-sm">上传知识库</button>
+          <button class="btn btn-secondary btn-sm">新建工作流</button>
+          <button class="btn btn-secondary btn-sm">写 Prompt 模板</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="card">
+      <div class="card-header">最近活动</div>
+      <div class="card-body" style="padding-top:0;">
+        <ul class="activity-list">
+          <li class="activity-item">
+            <span class="activity-dot chat"></span>
+            <span style="flex:1;font-size:14px;">客服助手 对话创建</span>
+            <span class="activity-time">2 分钟前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot agent"></span>
+            <span style="flex:1;font-size:14px;">代码审查员 Agent 已启动</span>
+            <span class="activity-time">15 分钟前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot knowledge"></span>
+            <span style="flex:1;font-size:14px;">产品手册 知识库向量化完成</span>
+            <span class="activity-time">32 分钟前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot chat"></span>
+            <span style="flex:1;font-size:14px;">API 参考 对话会话结束</span>
+            <span class="activity-time">1 小时前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-dot knowledge"></span>
+            <span style="flex:1;font-size:14px;">文档写手 知识库绑定更新</span>
+            <span class="activity-time">2 小时前</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 用户管理 ═══ -->
+<section id="users" class="ds-section">
+  <div class="ds-section-title"><h1>用户管理 User Management</h1><p>用户列表 + 新建用户 + 编辑角色。管理员功能。</p></div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);">
+    <div class="flex gap-3 items-center">
+      <input class="form-input" type="text" placeholder="搜索用户名或邮箱..." style="width:260px;min-height:40px;">
+      <div class="ds-select" style="width:140px;" id="user-status-filter">
+        <button class="ds-select-trigger" type="button" data-value="all" style="min-height:40px;">全部状态</button>
+        <ul class="ds-select-dropdown" role="listbox">
+          <li class="ds-select-option selected" data-value="all" role="option" aria-selected="true">全部状态</li>
+          <li class="ds-select-option" data-value="active" role="option" aria-selected="false">活跃</li>
+          <li class="ds-select-option" data-value="disabled" role="option" aria-selected="false">已禁用</li>
+        </ul>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm">+ 新建用户</button>
+  </div>
+
+  <div class="card">
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>用户</th>
+          <th>邮箱</th>
+          <th>角色</th>
+          <th>状态</th>
+          <th>创建时间</th>
+          <th class="actions">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid var(--color-text);">A</div>
+            <span style="font-weight:600;">admin</span>
+          </td>
+          <td class="font-mono text-sm">admin@microdify.local</td>
+          <td><span class="tag tag-primary">管理员</span></td>
+          <td><span class="tag tag-success">活跃</span></td>
+          <td class="text-xs text-secondary">2026-05-01</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm">编辑</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--color-error)">禁用</button>
+          </td>
+        </tr>
+        <tr>
+          <td style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-secondary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid var(--color-text);">Z</div>
+            <span style="font-weight:600;">zhangsan</span>
+          </td>
+          <td class="font-mono text-sm">zhangsan@microdify.local</td>
+          <td><span class="tag tag-info">开发者</span></td>
+          <td><span class="tag tag-success">活跃</span></td>
+          <td class="text-xs text-secondary">2026-05-15</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm">编辑</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--color-error)">禁用</button>
+          </td>
+        </tr>
+        <tr>
+          <td style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid var(--color-text);">L</div>
+            <span style="font-weight:600;">lisi</span>
+          </td>
+          <td class="font-mono text-sm">lisi@microdify.local</td>
+          <td><span class="tag tag-default">查看者</span></td>
+          <td><span class="tag tag-warning">未激活</span></td>
+          <td class="text-xs text-secondary">2026-05-28</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm">编辑</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--color-error)">禁用</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="ds-table-footer">
+      <span>共 3 条</span>
+      <div class="pagination">
+        <button>&lt;</button>
+        <button class="active">1</button>
+        <button>&gt;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create user inline form -->
+  <h3 class="mt-5 mb-4">新建用户表单</h3>
+  <div class="card" style="max-width:520px;">
+    <div class="card-header">创建新用户</div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">用户名 <span class="required">*</span></label>
+        <input class="form-input" type="text" placeholder="2-50 字符">
+      </div>
+      <div class="form-group">
+        <label class="form-label">邮箱 <span class="required">*</span></label>
+        <input class="form-input" type="text" placeholder="user@microdify.local">
+      </div>
+      <div class="form-group">
+        <label class="form-label">初始密码 <span class="required">*</span></label>
+        <input class="form-input" type="password" placeholder="至少 6 位">
+      </div>
+      <div class="form-group">
+        <label class="form-label">角色</label>
+        <div class="ds-select" id="user-role-select">
+          <button class="ds-select-trigger" type="button" data-value="developer">开发者</button>
+          <ul class="ds-select-dropdown" role="listbox">
+            <li class="ds-select-option selected" data-value="developer" role="option" aria-selected="true">开发者</li>
+            <li class="ds-select-option" data-value="admin" role="option" aria-selected="false">管理员</li>
+            <li class="ds-select-option" data-value="viewer" role="option" aria-selected="false">查看者</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;gap:var(--space-3);justify-content:flex-end;">
+        <button class="btn btn-secondary btn-sm">取消</button>
+        <button class="btn btn-primary btn-sm">创建用户</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Prompt 编辑器 ═══ -->
+<section id="prompt-editor" class="ds-section">
+  <div class="ds-section-title"><h1>Prompt 模板编辑器 Prompt Editor</h1><p>模板编辑 + 变量插值预览。左侧编辑区 + 右侧变量面板和实时预览。</p></div>
+
+  <div class="prompt-editor-layout">
+    <!-- Editor -->
+    <div>
+      <div class="form-group">
+        <label class="form-label">模板名称</label>
+        <input class="form-input" type="text" value="客服助手 - 产品咨询">
+      </div>
+      <div class="form-group">
+        <label class="form-label">模板内容</label>
+        <textarea class="form-textarea" style="min-height:200px;font-family:var(--font-mono);font-size:13px;line-height:1.7;">你是 microDify 平台的智能客服助手。
+
+你的任务是回答用户关于产品的使用问题。请保持友好、专业的态度。
+
+## 用户信息
+- 用户名: {{user_name}}
+- 产品版本: {{product_version}}
+
+## 历史记录
+{{chat_history}}
+
+## 当前问题
+{{user_question}}
+
+## 相关文档
+{{retrieved_docs}}
+
+请基于以上信息和相关文档，用中文给出准确、有帮助的回答。</textarea>
+      </div>
+      <button class="btn btn-primary btn-sm">保存模板</button>
+    </div>
+
+    <!-- Preview panel -->
+    <div>
+      <div class="card" style="margin-bottom:var(--space-5);">
+        <div class="card-header">变量列表</div>
+        <div class="card-body" style="padding-top:0;">
+          <div class="variable-list">
+            <div class="variable-item">
+              <span class="font-mono" style="font-size:12px;color:var(--color-primary);font-weight:600;">{{user_name}}</span>
+              <span class="tag tag-default">文本</span>
+              <span class="text-xs text-secondary" style="margin-left:auto;">必填</span>
+            </div>
+            <div class="variable-item">
+              <span class="font-mono" style="font-size:12px;color:var(--color-primary);font-weight:600;">{{product_version}}</span>
+              <span class="tag tag-default">文本</span>
+              <span class="text-xs text-secondary" style="margin-left:auto;">必填</span>
+            </div>
+            <div class="variable-item">
+              <span class="font-mono" style="font-size:12px;color:var(--color-primary);font-weight:600;">{{chat_history}}</span>
+              <span class="tag tag-info">上下文</span>
+              <span class="text-xs text-secondary" style="margin-left:auto;">自动注入</span>
+            </div>
+            <div class="variable-item">
+              <span class="font-mono" style="font-size:12px;color:var(--color-primary);font-weight:600;">{{user_question}}</span>
+              <span class="tag tag-info">上下文</span>
+              <span class="text-xs text-secondary" style="margin-left:auto;">自动注入</span>
+            </div>
+            <div class="variable-item">
+              <span class="font-mono" style="font-size:12px;color:var(--color-primary);font-weight:600;">{{retrieved_docs}}</span>
+              <span class="tag tag-warning">RAG</span>
+              <span class="text-xs text-secondary" style="margin-left:auto;">自动注入</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">实时预览</div>
+        <div class="card-body">
+          <div class="prompt-preview-box">
+            <p style="font-size:13px;line-height:1.7;">你是 microDify 平台的智能客服助手。</p>
+            <p style="font-size:13px;line-height:1.7;margin-top:8px;">你的任务是回答用户关于产品的使用问题。请保持友好、专业的态度。</p>
+            <p style="font-size:13px;line-height:1.7;margin-top:8px;font-weight:600;">## 用户信息</p>
+            <p style="font-size:13px;line-height:1.7;">- 用户名: <span class="var-highlight">张三</span></p>
+            <p style="font-size:13px;line-height:1.7;">- 产品版本: <span class="var-highlight">v3.2.1</span></p>
+            <p style="font-size:13px;line-height:1.7;margin-top:8px;"><span class="var-highlight">{{chat_history}}</span></p>
+            <p style="font-size:13px;line-height:1.7;margin-top:8px;"><span class="var-highlight">{{user_question}}</span></p>
+            <p style="font-size:13px;line-height:1.7;margin-top:8px;color:var(--color-text-tertiary);">... 自动注入的检索文档 ...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 设置页面 ═══ -->
+<section id="settings-page" class="ds-section">
+  <div class="ds-section-title"><h1>设置页面 Settings</h1><p>个人信息编辑 + 密码修改。左侧导航 + 右侧表单。</p></div>
+
+  <div class="settings-layout">
+    <!-- Settings nav -->
+    <div style="border-right:1px solid var(--color-divider);padding-right:var(--space-4);">
+      <button class="settings-nav-item active">个人信息</button>
+      <button class="settings-nav-item">修改密码</button>
+      <button class="settings-nav-item">API 密钥</button>
+      <button class="settings-nav-item">通知偏好</button>
+    </div>
+
+    <!-- Settings content -->
+    <div>
+      <!-- Profile form -->
+      <div class="card" style="margin-bottom:var(--space-5);">
+        <div class="card-header">个人信息</div>
+        <div class="card-body">
+          <div class="flex items-center gap-5 mb-5">
+            <div class="avatar-upload">+</div>
+            <div>
+              <p style="font-weight:600;font-size:14px;">头像照片</p>
+              <p class="text-xs text-secondary">支持 PNG、JPG，最大 2MB</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">用户名</label>
+            <input class="form-input" type="text" value="admin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">邮箱</label>
+            <input class="form-input" type="text" value="admin@microdify.local">
+          </div>
+          <div class="form-group">
+            <label class="form-label">个人简介</label>
+            <textarea class="form-textarea" placeholder="介绍一下自己...">microDify 平台管理员</textarea>
+          </div>
+          <button class="btn btn-primary btn-sm">保存修改</button>
+        </div>
+      </div>
+
+      <!-- Password change -->
+      <div class="card">
+        <div class="card-header">修改密码</div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">当前密码</label>
+            <input class="form-input" type="password" placeholder="输入当前密码">
+          </div>
+          <div class="form-group">
+            <label class="form-label">新密码</label>
+            <input class="form-input" type="password" placeholder="至少 6 位">
+          </div>
+          <div class="form-group">
+            <label class="form-label">确认新密码</label>
+            <input class="form-input" type="password" placeholder="再次输入新密码">
+          </div>
+          <button class="btn btn-primary btn-sm">更新密码</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer style="padding:var(--space-8) var(--space-10);text-align:center;border-top:3px solid var(--color-text);background:var(--color-surface);color:var(--color-text-secondary);font-size:13px;">
+  microDify Design System - Clay/Neubrutalism style guide - Built for AI Agent platform admin UI
+</footer>
+
+</div><!-- .ds-main -->
+</div><!-- .ds-wrap -->
+
+<script>
+// Simple sidebar nav active state
+document.querySelectorAll('.ds-sidebar-nav a').forEach(a => {
+  a.addEventListener('click', function() {
+    document.querySelectorAll('.ds-sidebar-nav a').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Toggle switch demo
+document.querySelectorAll('.switch').forEach(sw => {
+  sw.addEventListener('click', function() {
+    const isOn = this.classList.toggle('on');
+    this.setAttribute('aria-checked', isOn);
+  });
+  sw.addEventListener('keydown', function(e) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); this.click(); }
+  });
+});
+
+// Custom select dropdown
+document.querySelectorAll('.ds-select').forEach(ds => {
+  const trigger = ds.querySelector('.ds-select-trigger');
+  const options = ds.querySelectorAll('.ds-select-option');
+
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    // Close all other open selects
+    document.querySelectorAll('.ds-select.open').forEach(s => { if (s !== ds) s.classList.remove('open'); });
+    ds.classList.toggle('open');
+  });
+
+  trigger.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trigger.click(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); ds.classList.add('open'); if (options.length) options[0].focus(); }
+  });
+
+  options.forEach(opt => {
+    opt.addEventListener('click', function() {
+      const val = this.dataset.value;
+      const text = this.childNodes[0]?.nodeValue?.trim() || this.textContent.trim();
+      trigger.textContent = text || val;
+      trigger.setAttribute('data-value', val);
+      options.forEach(o => { o.classList.remove('selected'); o.setAttribute('aria-selected', 'false'); });
+      this.classList.add('selected');
+      this.setAttribute('aria-selected', 'true');
+      ds.classList.remove('open');
+    });
+    opt.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); const next = this.nextElementSibling; if (next) next.focus(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); const prev = this.previousElementSibling; if (prev) prev.focus(); }
+      if (e.key === 'Escape') { ds.classList.remove('open'); trigger.focus(); }
+    });
+  });
+});
+
+// Close selects when clicking outside
+document.addEventListener('click', function() {
+  document.querySelectorAll('.ds-select.open').forEach(s => s.classList.remove('open'));
+});
+</script>
+
+</body>
+</html>

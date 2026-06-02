@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arduino 语法教程 · 零基础入门学用 Arduino</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #00979d;
+      --primary-dark: #007a7f;
+      --secondary: #e8f6f7;
+      --secondary-dark: #b8e0e3;
+      --accent: #e47128;
+      --bg: #ffffff;
+      --bg-muted: #f5f7fa;
+      --text: #1a1a1a;
+      --text-muted: #5c6b73;
+      --border: #dde4e8;
+      --font-heading: "Fredoka", sans-serif;
+      --font-body: "Nunito", sans-serif;
+      --font-code: "JetBrains Mono", monospace;
+      --radius-sm: 12px;
+      --radius: 16px;
+      --radius-lg: 24px;
+      --shadow: 6px 6px 0 var(--text);
+      --shadow-sm: 4px 4px 0 var(--text);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      font-weight: 500;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 600; line-height: 1.2; }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    ul { list-style: none; }
+
+    .container { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem; }
+
+    /* Clay components */
+    .clay-card {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      border: 3px solid var(--text);
+      box-shadow: var(--shadow), inset 0 -4px rgba(0, 0, 0, 0.08);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .clay-card:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 4px 4px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.08);
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.75rem;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: var(--radius);
+      border: 3px solid var(--text);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--text);
+    }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.75rem;
+      background: var(--secondary);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: var(--radius);
+      border: 3px solid var(--text);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-secondary:hover {
+      background: var(--secondary-dark);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--text);
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.65rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 999px;
+      border: 2px solid var(--text);
+    }
+    .tag-teal { background: var(--secondary); color: var(--primary-dark); }
+    .tag-orange { background: #fff0e8; color: var(--accent); }
+    .tag-easy { background: #e8f8e8; color: #2d6a2d; }
+
+    /* Nav */
+    .nav-wrap {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      z-index: 100;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1.25rem;
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+    .logo-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: var(--radius-sm);
+      background: var(--primary);
+      border: 3px solid var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .nav-links {
+      display: none;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    @media (min-width: 900px) {
+      .nav-links { display: flex; }
+      .nav-toggle { display: none; }
+    }
+    .nav-item { position: relative; }
+    .nav-link {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 8px;
+      transition: color 0.15s;
+    }
+    .nav-link:hover { color: var(--primary); }
+    .nav-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .nav-toggle {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: var(--radius-sm);
+      background: var(--secondary);
+      border: 3px solid var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .nav-toggle span {
+      width: 1rem;
+      height: 2px;
+      background: var(--text);
+      border-radius: 1px;
+    }
+    .mobile-menu {
+      display: none;
+      padding: 1rem 0 0;
+      border-top: 3px solid var(--border);
+      margin-top: 0.75rem;
+    }
+    .mobile-menu.open { display: block; }
+    .mobile-menu a {
+      display: block;
+      padding: 0.5rem 0;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 7rem 0 4rem;
+      background: var(--bg-muted);
+      overflow: hidden;
+    }
+    .hero-grid {
+      display: grid;
+      gap: 2.5rem;
+      align-items: center;
+    }
+    @media (min-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: var(--secondary);
+      border: 3px solid var(--text);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+    }
+    .hero-badge::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      margin-bottom: 1rem;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--primary);
+    }
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 28rem;
+      margin-bottom: 1.75rem;
+    }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+    .hero-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .hero-stats strong {
+      display: block;
+      font-family: var(--font-heading);
+      font-size: 1.75rem;
+    }
+    .hero-stats span { font-size: 0.85rem; color: var(--text-muted); }
+    .hero-card { padding: 1.5rem; }
+    .hero-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .hero-card-meta { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .progress-wrap {
+      border: 3px solid var(--text);
+      border-radius: var(--radius-sm);
+      height: 1.25rem;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+      background: var(--bg-muted);
+    }
+    .progress-bar {
+      height: 100%;
+      width: 42%;
+      background: var(--primary);
+      border-right: 3px solid var(--text);
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .code-preview {
+      background: #0f1419;
+      color: #e6edf3;
+      font-family: var(--font-code);
+      font-size: 0.8rem;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      border: 3px solid var(--text);
+      line-height: 1.7;
+      margin-top: 1rem;
+    }
+    .code-preview .kw { color: #79c0ff; }
+    .code-preview .fn { color: #d2a8ff; }
+    .code-preview .num { color: #ffa657; }
+    .code-preview .cm { color: #8b949e; }
+
+    /* Sections */
+    section { padding: 4rem 0; }
+    section:nth-child(even) { background: var(--bg-muted); }
+    .section-head {
+      text-align: center;
+      max-width: 36rem;
+      margin: 0 auto 2.5rem;
+    }
+    .section-head h2 { font-size: clamp(1.75rem, 4vw, 2.25rem); margin-bottom: 0.5rem; }
+    .section-head p { color: var(--text-muted); }
+
+    /* Tutorial grid */
+    .tutorial-grid {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+    .tutorial-card {
+      padding: 1.35rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .tutorial-card .icon-box {
+      width: 3rem;
+      height: 3rem;
+      border-radius: var(--radius-sm);
+      border: 3px solid var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+    .tutorial-card:nth-child(1) .icon-box { background: var(--secondary); }
+    .tutorial-card:nth-child(2) .icon-box { background: var(--secondary-dark); }
+    .tutorial-card:nth-child(3) .icon-box { background: var(--primary); color: #fff; }
+    .tutorial-card:nth-child(4) .icon-box { background: #fff0e8; }
+    .tutorial-card:nth-child(5) .icon-box { background: var(--secondary); }
+    .tutorial-card:nth-child(6) .icon-box { background: var(--secondary-dark); }
+    .tutorial-card:nth-child(7) .icon-box { background: var(--primary); color: #fff; }
+    .tutorial-card h3 { font-size: 1.05rem; }
+    .tutorial-card p { font-size: 0.875rem; color: var(--text-muted); flex: 1; }
+    .tutorial-card .link {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Learning path */
+    .path-steps {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .path-steps { grid-template-columns: repeat(5, 1fr); }
+    }
+    .path-step {
+      padding: 1.25rem;
+      text-align: center;
+      position: relative;
+    }
+    .path-num {
+      width: 2.25rem;
+      height: 2.25rem;
+      margin: 0 auto 0.75rem;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--text);
+    }
+    .path-step h4 { font-size: 0.95rem; margin-bottom: 0.35rem; }
+    .path-step p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .path-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; }
+
+    /* Syntax reference */
+    .syntax-layout {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 768px) {
+      .syntax-layout { grid-template-columns: 220px 1fr; }
+    }
+    .syntax-nav { padding: 1rem; }
+    .syntax-nav button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.55rem 0.75rem;
+      font-family: var(--font-code);
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 8px;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .syntax-nav button.active,
+    .syntax-nav button:hover {
+      background: var(--secondary);
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+    .syntax-panel { padding: 1.5rem; }
+    .syntax-panel h3 { margin-bottom: 0.5rem; }
+    .syntax-panel > p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
+    .code-block {
+      position: relative;
+      background: #0f1419;
+      color: #e6edf3;
+      font-family: var(--font-code);
+      font-size: 0.85rem;
+      padding: 1.25rem;
+      border-radius: var(--radius-sm);
+      border: 3px solid var(--text);
+      line-height: 1.75;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--secondary);
+      border: 2px solid var(--text);
+      border-radius: 6px;
+    }
+    .copy-btn.copied { background: var(--primary); color: #fff; }
+
+    /* Timeline + projects */
+    .two-col {
+      display: grid;
+      gap: 1.5rem;
+    }
+    @media (min-width: 900px) {
+      .two-col { grid-template-columns: 1fr 1.2fr; }
+    }
+    .timeline { padding: 1.25rem; }
+    .timeline-item {
+      display: flex;
+      gap: 1rem;
+      padding: 0.85rem 0;
+      border-bottom: 2px dashed var(--border);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-date {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 5rem;
+    }
+    .timeline-item h4 { font-size: 0.95rem; margin-bottom: 0.2rem; }
+    .timeline-item p { font-size: 0.8rem; color: var(--text-muted); }
+    .project-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .project-card { overflow: hidden; padding: 0; }
+    .project-thumb {
+      height: 110px;
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+      border-bottom: 3px solid var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .project-thumb svg { opacity: 0.5; }
+    .project-body { padding: 1rem; }
+    .project-body h4 { font-size: 0.95rem; margin-bottom: 0.35rem; }
+    .project-body .board { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+
+    /* Why + CTA */
+    .features {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .feature-card {
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .feature-card .feat-icon {
+      width: 3.5rem;
+      height: 3.5rem;
+      margin: 0 auto 1rem;
+      border-radius: 50%;
+      background: var(--secondary);
+      border: 3px solid var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+    .cta-banner {
+      text-align: center;
+      padding: 3rem 2rem;
+      background: var(--primary);
+      color: #fff;
+      border: 3px solid var(--text);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+    .cta-banner h2 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    .cta-banner p { opacity: 0.9; margin-bottom: 1.5rem; max-width: 28rem; margin-left: auto; margin-right: auto; }
+    .cta-banner .btn-primary {
+      background: #fff;
+      color: var(--primary-dark);
+    }
+    .cta-banner .btn-primary:hover { background: var(--secondary); }
+
+    /* Footer */
+    footer {
+      padding: 2.5rem 0;
+      border-top: 3px solid var(--text);
+      background: var(--bg);
+    }
+    .footer-grid {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+      .footer-grid { grid-template-columns: 2fr repeat(3, 1fr); }
+    }
+    .footer-grid h4 {
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .footer-grid a, .footer-grid li {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      padding: 0.2rem 0;
+      font-weight: 600;
+    }
+    .footer-grid a:hover { color: var(--primary); }
+    .footer-copy {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+    }
+    .d1 { animation-delay: 0.05s; }
+    .d2 { animation-delay: 0.1s; }
+    .d3 { animation-delay: 0.15s; }
+    .d4 { animation-delay: 0.2s; }
+  </style>
+</head>
+<body>
+  <header class="nav-wrap">
+    <nav class="clay-card nav-inner" aria-label="主导航">
+      <a href="#" class="logo">
+        <span class="logo-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </span>
+        Arduino 语法教程
+      </a>
+      <div class="nav-links">
+        <div class="nav-item"><a class="nav-link" href="#tutorials">Arduino 教程</a></div>
+        <div class="nav-item"><a class="nav-link" href="#syntax">语法速查</a></div>
+        <div class="nav-item"><a class="nav-link" href="#projects">示例项目</a></div>
+        <div class="nav-item"><a class="nav-link" href="#download">下载</a></div>
+        <div class="nav-item"><a class="nav-link" href="#faq">常见问题</a></div>
+        <div class="nav-item"><a class="nav-link" href="#about">关于</a></div>
+      </div>
+      <div class="nav-actions">
+        <button class="btn-secondary" style="padding:0.5rem 1rem;font-size:0.85rem;display:none" id="loginBtn">登录</button>
+        <button class="btn-primary" style="padding:0.5rem 1rem;font-size:0.85rem;display:none" id="startBtn">开始学习</button>
+        <button class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <div class="mobile-menu" id="mobileMenu">
+        <a href="#tutorials">Arduino 教程</a>
+        <a href="#syntax">语法速查</a>
+        <a href="#projects">示例项目</a>
+        <a href="#download">下载</a>
+        <a href="#path">学习路径</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="animate-in d1">
+          <div class="hero-badge">开源免费 · 持续更新</div>
+          <h1>零基础入门 · <em>Arduino</em> 语法与开发</h1>
+          <p class="hero-desc">视频讲解 + 示例代码 + 动手项目。从第一个 Sketch 到传感器与通讯，循序渐进掌握创客开发。</p>
+          <div class="hero-cta">
+            <a href="#path" class="btn-primary">开始学习</a>
+            <a href="#tutorials" class="btn-secondary">浏览教程目录</a>
+          </div>
+          <div class="hero-stats">
+            <div><strong>48+</strong><span>教程章节</span></div>
+            <div><strong>120+</strong><span>示例代码</span></div>
+            <div><strong>100%</strong><span>开源免费</span></div>
+          </div>
+        </div>
+        <div class="clay-card hero-card animate-in d2">
+          <h3>Arduino 语法基础</h3>
+          <p class="hero-card-meta">第 3 章 · 12 课时 · 约 2h</p>
+          <div class="progress-label"><span>学习进度</span><span>42%</span></div>
+          <div class="progress-wrap"><div class="progress-bar"></div></div>
+          <button class="btn-primary" style="width:100%">继续学习</button>
+          <div class="code-preview" aria-hidden="true">
+<span class="kw">void</span> <span class="fn">setup</span>() {<br>
+&nbsp;&nbsp;<span class="fn">pinMode</span>(<span class="num">13</span>, <span class="num">OUTPUT</span>);<br>
+}<br>
+<span class="kw">void</span> <span class="fn">loop</span>() {<br>
+&nbsp;&nbsp;<span class="fn">digitalWrite</span>(<span class="num">13</span>, <span class="num">HIGH</span>);<br>
+&nbsp;&nbsp;<span class="fn">delay</span>(<span class="num">1000</span>);<br>
+}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tutorials">
+      <div class="container">
+        <div class="section-head animate-in">
+          <h2>教程入口</h2>
+          <p>按主题浏览，从语法基础到实战项目</p>
+        </div>
+        <div class="tutorial-grid">
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">◇</div>
+            <h3>Arduino 语法基础</h3>
+            <p>变量类型、setup/loop、运算符与注释</p>
+            <a href="#" class="link">进入教程 →</a>
+          </article>
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">↻</div>
+            <h3>语句与流程控制</h3>
+            <p>if / for / while / switch 详解</p>
+            <a href="#" class="link">进入教程 →</a>
+          </article>
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">ƒ</div>
+            <h3>函数与库</h3>
+            <p>自定义函数、库的安装与调用</p>
+            <a href="#" class="link">进入教程 →</a>
+          </article>
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">⚡</div>
+            <h3>数字 / 模拟 I/O</h3>
+            <p>pinMode、digitalWrite、analogRead</p>
+            <a href="#" class="link">进入教程 →</a>
+          </article>
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">⌁</div>
+            <h3>串口与通讯</h3>
+            <p>Serial、I2C、SPI 入门</p>
+            <a href="#" class="link">进入教程 →</a>
+          </article>
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">◎</div>
+            <h3>传感器与电机</h3>
+            <p>DHT、超声波、舵机与直流电机</p>
+            <a href="#" class="link">进入教程 →</a>
+          </article>
+          <article class="clay-card tutorial-card">
+            <div class="icon-box">★</div>
+            <h3>示例项目精选</h3>
+            <p>开源创客项目合集与制作指南</p>
+            <a href="#" class="link">查看项目 →</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="path">
+      <div class="container">
+        <div class="section-head">
+          <h2>学习路径</h2>
+          <p>五步从零到做出第一个完整项目</p>
+        </div>
+        <div class="path-steps">
+          <div class="clay-card path-step">
+            <div class="path-num">1</div>
+            <h4>安装 IDE</h4>
+            <p>下载与环境配置</p>
+            <div class="path-tags"><span class="tag tag-easy">入门</span><span class="tag tag-teal">15 分钟</span></div>
+          </div>
+          <div class="clay-card path-step">
+            <div class="path-num">2</div>
+            <h4>第一个 Sketch</h4>
+            <p>Blink 点亮 LED</p>
+            <div class="path-tags"><span class="tag tag-easy">入门</span><span class="tag tag-teal">30 分钟</span></div>
+          </div>
+          <div class="clay-card path-step">
+            <div class="path-num">3</div>
+            <h4>语法核心</h4>
+            <p>变量与流程控制</p>
+            <div class="path-tags"><span class="tag tag-teal">2 小时</span></div>
+          </div>
+          <div class="clay-card path-step">
+            <div class="path-num">4</div>
+            <h4>库与模块</h4>
+            <p>传感器与通讯库</p>
+            <div class="path-tags"><span class="tag tag-teal">3 小时</span></div>
+          </div>
+          <div class="clay-card path-step">
+            <div class="path-num">5</div>
+            <h4>综合小项目</h4>
+            <p>温湿度监测站</p>
+            <div class="path-tags"><span class="tag tag-orange">进阶</span><span class="tag tag-teal">4 小时</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="syntax">
+      <div class="container">
+        <div class="section-head">
+          <h2>语法速查</h2>
+          <p>点击左侧条目预览说明与示例代码</p>
+        </div>
+        <div class="syntax-layout">
+          <nav class="clay-card syntax-nav" aria-label="语法目录">
+            <button type="button" class="active" data-syntax="setup">setup()</button>
+            <button type="button" data-syntax="loop">loop()</button>
+            <button type="button" data-syntax="pinmode">pinMode()</button>
+            <button type="button" data-syntax="digital">digitalWrite()</button>
+            <button type="button" data-syntax="analog">analogRead()</button>
+            <button type="button" data-syntax="serial">Serial.begin()</button>
+          </nav>
+          <div class="clay-card syntax-panel" id="syntaxPanel">
+            <h3 id="syntaxTitle">setup()</h3>
+            <p id="syntaxDesc">初始化函数，程序启动时执行一次。常用于配置引脚模式、初始化串口等。</p>
+            <div class="code-block" id="syntaxCode"><button type="button" class="copy-btn" id="copyBtn">复制</button>void setup() {
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container two-col">
+        <div>
+          <div class="section-head" style="text-align:left;margin-bottom:1.25rem">
+            <h2>教程上新</h2>
+          </div>
+          <div class="clay-card timeline">
+            <div class="timeline-item">
+              <span class="timeline-date">2025-03</span>
+              <div>
+                <h4>面向对象基础 · 专项教程</h4>
+                <p>类、对象与 Arduino 中的简易 OOP 实践</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <span class="timeline-date">2025-01</span>
+              <div>
+                <h4>ESP8266 MQTT 应用篇</h4>
+                <p>物联网天气时钟完整项目</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <span class="timeline-date">2024-08</span>
+              <div>
+                <h4>入门学用人工智能</h4>
+                <p>教程资料与结构已制定，敬请期待</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="projects">
+          <div class="section-head" style="text-align:left;margin-bottom:1.25rem">
+            <h2>推荐项目</h2>
+          </div>
+          <div class="project-grid">
+            <article class="clay-card project-card">
+              <div class="project-thumb">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00979d" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              </div>
+              <div class="project-body">
+                <h4>温湿度监测小站</h4>
+                <span class="board">Arduino Uno + DHT11</span>
+              </div>
+            </article>
+            <article class="clay-card project-card">
+              <div class="project-thumb" style="background:linear-gradient(135deg,#e8f6f7,#b8e0e3)">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#007a7f" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <div class="project-body">
+                <h4>物联网天气时钟</h4>
+                <span class="board">ESP8266 NodeMCU</span>
+              </div>
+            </article>
+            <article class="clay-card project-card">
+              <div class="project-thumb" style="background:linear-gradient(135deg,#fff0e8,#e8f6f7)">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e47128" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              </div>
+              <div class="project-body">
+                <h4>MeArm 机械臂控制</h4>
+                <span class="board">Arduino Nano</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-head">
+          <h2>为什么选择本站</h2>
+          <p>面向创客的免费开源学习体验</p>
+        </div>
+        <div class="features">
+          <div class="clay-card feature-card">
+            <div class="feat-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            </div>
+            <h3>免费开源</h3>
+            <p style="font-size:0.9rem;color:var(--text-muted)">全部教程免费，代码示例可自由学习与修改</p>
+          </div>
+          <div class="clay-card feature-card">
+            <div class="feat-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <h3>视频 + 图文</h3>
+            <p style="font-size:0.9rem;color:var(--text-muted)">演示讲解配合可复制代码，跟做更轻松</p>
+          </div>
+          <div class="clay-card feature-card">
+            <div class="feat-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <h3>动手项目</h3>
+            <p style="font-size:0.9rem;color:var(--text-muted)">每章配套小项目，从 Blink 到物联网应用</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="cta-banner">
+          <h2>准备好写第一段 Arduino 代码了吗？</h2>
+          <p>无需注册，立即从第一章开始。全部内容开源免费。</p>
+          <a href="#path" class="btn-primary">进入第一章 · Blink</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="about">
+    <div class="container footer-grid">
+      <div>
+        <a href="#" class="logo" style="margin-bottom:0.75rem">
+          <span class="logo-icon" style="width:2rem;height:2rem;font-size:0.75rem">A</span>
+          Arduino 语法教程
+        </a>
+        <p style="font-size:0.85rem;color:var(--text-muted);max-width:16rem">Arduino、物联网与创客开发的学习资料。演示站点，内容仅供页面效果展示。</p>
+      </div>
+      <div id="download">
+        <h4>教程</h4>
+        <a href="#">基础知识篇</a>
+        <a href="#">智能应用篇</a>
+        <a href="#">专项教程</a>
+      </div>
+      <div>
+        <h4>开发</h4>
+        <a href="#">开发板介绍</a>
+        <a href="#">编程参考</a>
+        <a href="#">传感器应用</a>
+      </div>
+      <div id="faq">
+        <h4>资源</h4>
+        <a href="#">软件下载</a>
+        <a href="#">常见问题</a>
+        <a href="#">版权声明</a>
+      </div>
+    </div>
+    <p class="footer-copy container">本网站内容仅供个人学习研究与非商业用途。© 2025 Arduino 语法教程 · 页面效果演示</p>
+  </footer>
+
+  <script>
+    const syntaxData = {
+      setup: {
+        title: "setup()",
+        desc: "初始化函数，程序启动时执行一次。常用于配置引脚模式、初始化串口等。",
+        code: "void setup() {\n  pinMode(13, OUTPUT);\n  Serial.begin(9600);\n}"
+      },
+      loop: {
+        title: "loop()",
+        desc: "主循环函数，setup() 结束后反复执行。",
+        code: "void loop() {\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}"
+      },
+      pinmode: {
+        title: "pinMode()",
+        desc: "配置引脚为输入或输出模式。",
+        code: "pinMode(pin, mode);\n// mode: INPUT, OUTPUT, INPUT_PULLUP"
+      },
+      digital: {
+        title: "digitalWrite()",
+        desc: "向数字引脚写入 HIGH 或 LOW。",
+        code: "digitalWrite(13, HIGH);\ndigitalWrite(13, LOW);"
+      },
+      analog: {
+        title: "analogRead()",
+        desc: "读取模拟引脚电压（0–1023）。仅 A0–A5 等模拟引脚可用。",
+        code: "int value = analogRead(A0);\nSerial.println(value);"
+      },
+      serial: {
+        title: "Serial.begin()",
+        desc: "初始化串口通讯，需与 Serial.print() 等配合使用。",
+        code: "void setup() {\n  Serial.begin(9600);\n}\nvoid loop() {\n  Serial.println(\"Hello\");\n}"
+      }
+    };
+
+    const navToggle = document.getElementById("navToggle");
+    const mobileMenu = document.getElementById("mobileMenu");
+    navToggle?.addEventListener("click", () => {
+      const open = mobileMenu.classList.toggle("open");
+      navToggle.setAttribute("aria-expanded", open);
+    });
+
+    if (window.matchMedia("(min-width: 900px)").matches) {
+      document.getElementById("loginBtn").style.display = "inline-flex";
+      document.getElementById("startBtn").style.display = "inline-flex";
+    }
+
+    document.querySelectorAll(".syntax-nav button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".syntax-nav button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const key = btn.dataset.syntax;
+        const item = syntaxData[key];
+        document.getElementById("syntaxTitle").textContent = item.title;
+        document.getElementById("syntaxDesc").textContent = item.desc;
+        document.getElementById("syntaxCode").innerHTML =
+          '<button type="button" class="copy-btn" id="copyBtn">复制</button>' + item.code;
+        bindCopy();
+      });
+    });
+
+    function bindCopy() {
+      document.getElementById("copyBtn")?.addEventListener("click", async function () {
+        const code = document.getElementById("syntaxCode").innerText.replace("复制", "").trim();
+        try {
+          await navigator.clipboard.writeText(code);
+          this.textContent = "已复制";
+          this.classList.add("copied");
+          setTimeout(() => {
+            this.textContent = "复制";
+            this.classList.remove("copied");
+          }, 2000);
+        } catch (_) {}
+      });
+    }
+    bindCopy();
+  </script>
+</body>
+</html>

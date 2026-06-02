@@ -296,3 +296,13 @@ microDify 工程骨架已搭好——后端 10 个模块全部有 5 个必含文
 根据microDify的项目使用的技术栈，可以参考claude.md，生成一段prompt可以实现上面需要补齐的基础组件中的可观测性的组件，使其符合本项目整体结构，先在对话中输出。
 
 （由opus4.8进行分析）分析我的microDify项目，在写业务代码之前我增加了一些基础组件，分析一些这些组件是否符合claude.md的规范，组件之间的有无冲突，有无可以优化的地方。
+
+请参考下面这段prompt的格式，生成一段适合microDify前端风格格式的prompt，要求需要符合claude.md的结构，同时具体的前端风格必须和 @/d:/Iamster/microDify-v3/docs/frontend-template.html 一致，输出内容，1.一段适合microDify的前端风格prompt 2.一个microDify的storybook页面。有任何问题使用头脑风暴进行提问。=
+参考prompt如下：
+Hify 是一个 AI Agent 开发平台，面向技术团队内部使用，主要用户是开发者和技术管理者。界面以管理后台为主——大量的表格、表单、配置页面，加上一个对话交互页面。我想要的视觉风格：浅底  +  科技感点缀。整体用浅色背景保持信息可读性（管理后台表格多，深色底长时间看眼睛累）。但不要太素——侧边栏用深色底，按钮和关键交互元素用亮色，制造科技感和品牌感。色调方向：主色用蓝紫系（科技感强），辅色用青色或薄荷绿（数据 / 状态指示）。参考 Linear、Supabase 的视觉风格——干净但不无聊，有设计感但不花哨。帮我设计一套完整的设计系统：主色 / 辅色 / 背景色阶 / 文字色阶 / 圆角 / 阴影 / 过渡动效，用 CSS 变量输出。
+
+使用 ui-ux-pro-max 和 frontend-design 这两个skills 对这个设计风格进行优化
+
+缺少了登入页面，用户管理页面等，根据claude.md的项目结构，查看可能还需补齐什么页面内容。
+
+生成一段 prompt 可以实现对microDify前端这个路由http://localhost:3000/下面的页面进行改造，要求符合 @/d:/Iamster/microDify-v3/docs/design-system.html 和 @/d:/Iamster/microDify-v3/docs/frontend-style-prompt.md ，先在对话中进行展示。
