@@ -9,17 +9,43 @@ import Button from "@/components/ui/Button";
 import { showToast } from "@/components/ui/Toast";
 import { post, BizError } from "@/lib/api";
 
+/* ── Validator ──────────────────────────────────────── */
+
+function validateEmail(v: string): string | undefined {
+  if (!v.trim()) return "请输入邮箱地址";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) return "请输入有效的邮箱地址";
+  return undefined;
+}
+
+/* ── Component ──────────────────────────────────────── */
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const router = useRouter();
+
+  /* ── Blur validation ─────────────────────────────── */
+
+  function handleBlur() {
+    const err = validateEmail(email);
+    if (emailError !== err) setEmailError(err);
+  }
+
+  function clearError() {
+    if (emailError) setEmailError(undefined);
+  }
+
+  /* ── Submit ──────────────────────────────────────── */
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!email.trim()) {
-      showToast("warning", "请输入邮箱地址");
+    const err = validateEmail(email);
+    if (err) {
+      setEmailError(err);
+      document.getElementById("邮箱地址")?.focus();
       return;
     }
 
@@ -36,7 +62,7 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  /* ── Success state ──────────────────────────────── */
+  /* ── Success state ────────────────────────────────── */
 
   if (sent) {
     return (
@@ -68,7 +94,7 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  /* ── Form state ─────────────────────────────────── */
+  /* ── Form state ───────────────────────────────────── */
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
@@ -86,14 +112,16 @@ export default function ForgotPasswordPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <Input
               label="邮箱地址"
               required
               type="text"
               placeholder="admin@microdify.local"
+              error={emailError}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); clearError(); }}
+              onBlur={handleBlur}
               autoComplete="email"
             />
 
@@ -102,12 +130,7 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
 
-          <div className="flex items-center gap-3 my-5">
-            <span className="flex-1 h-px bg-[var(--color-divider)]" />
-            <span className="flex-1 h-px bg-[var(--color-divider)]" />
-          </div>
-
-          <p className="text-center text-[13px] text-[var(--color-text-secondary)]">
+          <p className="text-center mt-5 text-[13px] text-[var(--color-text-secondary)]">
             <Link href="/login" className="font-semibold text-[var(--color-primary)] no-underline">
               返回登录
             </Link>

@@ -10,7 +10,7 @@
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -28,8 +28,8 @@ async def get_user(db: AsyncSession, user_id: uuid.UUID) -> User:
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
-    """按邮箱查找用户，不存在返回 None。"""
-    result = await db.execute(select(User).where(User.email == email))
+    """按邮箱查找用户（大小写不敏感），不存在返回 None。"""
+    result = await db.execute(select(User).where(func.lower(User.email) == email.lower()))
     return result.scalar_one_or_none()
 
 
@@ -62,12 +62,12 @@ async def create_user(
     """
     from app.core.security import hash_password
 
-    # Check uniqueness
+    # Check email uniqueness (case-insensitive)
     existing = await db.execute(
-        select(User).where((User.email == email) | (User.username == username))
+        select(User).where(func.lower(User.email) == email.lower())
     )
     if existing.scalar_one_or_none():
-        raise BizException(ErrorCode.BAD_REQUEST, detail="邮箱或用户名已存在")
+        raise BizException(ErrorCode.BAD_REQUEST, detail="邮箱已存在")
 
     user = User(
         email=email,

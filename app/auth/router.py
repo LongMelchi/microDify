@@ -13,6 +13,7 @@ from app.common.redis_client import RedisClient, get_redis
 from app.core.deps import get_db
 from app.core.exceptions import BizException, ErrorCode
 from app.core.schemas import Result
+from app.core.security import create_token
 
 router = APIRouter(
     prefix="/auth",
@@ -52,6 +53,33 @@ async def login(
 
     # Authenticate
     token_str = await service.authenticate(db, body.email, body.password)
+    return Result.ok(
+        schemas.TokenResponse(access_token=token_str).model_dump()
+    ).model_dump()
+
+
+@router.post("/register")
+async def register(
+    body: schemas.UserCreate,
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient | None = Depends(get_redis),
+) -> dict:
+    """注册新用户，成功后自动登录并返回 JWT token。
+
+    一期不设注册限流（团队内部 20-50 人，注册频率极低）。
+    """
+    # 可选：未来可加 Redis IP 限流（3 次/小时），key = f"register:{request.client.host}"
+    if redis is not None:
+        logger.debug("Redis available for future registration rate limiting")
+
+    user_id = await service.create_user(
+        db,
+        email=body.email,
+        username=body.username,
+        password=body.password,
+    )
+    token_str = create_token(str(user_id))
+    logger.info("User registered", extra={"user_id": str(user_id), "email": body.email})
     return Result.ok(
         schemas.TokenResponse(access_token=token_str).model_dump()
     ).model_dump()
