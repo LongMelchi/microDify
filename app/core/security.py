@@ -5,6 +5,7 @@ Usage::
     from app.core.security import create_token, decode_token, hash_password, verify_password
 """
 
+import base64
 import hashlib
 
 from datetime import datetime, timedelta, timezone
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import jwt
 import structlog
+from cryptography.fernet import Fernet
 
 from app.core.config import get_settings
 
@@ -64,3 +66,19 @@ def verify_password(plain: str, hashed: str) -> bool:
     # Legacy SHA-256 fallback (insecure — migrate on next password set).
     logger.warning("verifying legacy sha256 password hash — should be re-hashed with bcrypt")
     return hashlib.sha256(plain.encode()).hexdigest() == hashed
+
+
+def _get_fernet() -> Fernet:
+    """Derive a Fernet key from the JWT secret (SHA-256 → 32 bytes → base64)."""
+    key = hashlib.sha256(settings.jwt_secret.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key))
+
+
+def encrypt_api_key(plain: str) -> str:
+    """Encrypt an API key for database storage."""
+    return _get_fernet().encrypt(plain.encode()).decode()
+
+
+def decrypt_api_key(encrypted: str) -> str:
+    """Decrypt an API key retrieved from the database."""
+    return _get_fernet().decrypt(encrypted.encode()).decode()

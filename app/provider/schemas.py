@@ -1,46 +1,38 @@
-"""Provider Pydantic schemas.
-
-Naming convention (CLAUDE.md §3):
-
-    XxxCreate   — request body for POST /<resource>/
-    XxxResponse — response body for GET/PATCH /<resource>/<id>
-    XxxFilter   — query-string filters for GET /<resource>/
-
-Note: Most provider configuration is managed through environment variables
-rather than REST API endpoints.  These schemas exist primarily for optional
-admin/management endpoints and for the unified chat/embedding request path.
-"""
-
-from uuid import UUID
+"""Pydantic 请求/响应模型 for ProviderConfig"""
 
 from pydantic import BaseModel, Field
 
-
-# ─── Provider config ────────────────────────────────────────────────────
-
-
-class ProviderCreate(BaseModel):
-    """Create a provider override (e.g. custom endpoint, model alias)."""
-
-    name: str = Field(..., min_length=1, max_length=100, description="Provider name")
-    api_key: str = Field(..., min_length=1, description="API key for the provider")
-    base_url: str | None = Field(None, description="Custom base URL")
-    model: str = Field("gpt-4o", description="Default model identifier")
+from app.core.schemas import CoreResponse
 
 
-class ProviderResponse(BaseModel):
-    """Provider configuration response (api_key is never returned)."""
+class ProviderConfigCreate(BaseModel):
+    """创建提供商配置"""
 
-    id: UUID
+    name: str = Field(..., min_length=1, max_length=100)
+    provider_type: str = Field(..., pattern="^(openai|anthropic)$")
+    base_url: str = Field(..., min_length=1, max_length=500)
+    api_key: str = Field(..., min_length=1, max_length=500)
+    note: str | None = None
+
+
+class ProviderConfigUpdate(BaseModel):
+    """更新提供商配置（所有字段可选）"""
+
+    name: str | None = Field(None, min_length=1, max_length=100)
+    provider_type: str | None = Field(None, pattern="^(openai|anthropic)$")
+    base_url: str | None = Field(None, min_length=1, max_length=500)
+    api_key: str | None = Field(None, min_length=1, max_length=500)
+    note: str | None = None
+    is_active: bool | None = None
+
+
+class ProviderConfigResponse(CoreResponse):
+    """提供商配置响应"""
+
     name: str
-    base_url: str | None = None
-    model: str
-
-    model_config = {"from_attributes": True}
-
-
-class ProviderFilter(BaseModel):
-    """Provider list query filters."""
-
-    name: str | None = Field(None, max_length=100)
-    model: str | None = Field(None, max_length=100)
+    provider_type: str
+    base_url: str
+    api_key: str  # 脱敏显示
+    note: str | None = None
+    is_active: bool = True
+    last_called_at: str | None = None

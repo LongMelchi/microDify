@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     # --- Application ---
     app_name: str = "microDify"
+    app_version: str = "0.1.0"
     debug: bool = True
     port: int = 8000
     workers: int = 2

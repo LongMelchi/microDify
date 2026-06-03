@@ -1,23 +1,37 @@
-"""Provider ORM models.
+"""模型提供商配置数据模型
 
-Provider configuration is managed entirely through environment variables
-and runtime settings.  Per CLAUDE.md §4, this module intentionally produces
-**no database tables** — LLM provider configs (API keys, model names,
-endpoints, rate limits) are loaded at startup via ``app.core.config`` and
-never persisted to PostgreSQL.
-
-If a future admin feature requires persisting provider metadata, add models
-here following the standard pattern::
-
-    from app.core.database import Base
-    from sqlalchemy import Column, String
-    from sqlalchemy.dialects.postgresql import UUID
-
-    class ProviderConfig(Base):
-        __tablename__ = "provider_configs"
-        ...
+表名: provider_configs
+归属模块: provider/
 """
 
-# No models defined — provider has no database tables.
-# Import Base is available for future use:
-# from app.core.database import Base
+import uuid
+
+from sqlalchemy import Boolean, DateTime, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base, SoftDeleteMixin, TimestampsMixin
+
+
+class ProviderConfig(Base, TimestampsMixin, SoftDeleteMixin):
+    """LLM 提供商配置 — API Key 经 Fernet 加密存储。
+
+    时间戳由 ``TimestampsMixin`` 提供，软删除由 ``SoftDeleteMixin`` 提供。
+    """
+
+    __tablename__ = "provider_configs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, index=True
+    )
+    base_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    api_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, index=True
+    )
+    last_called_at = mapped_column(DateTime(timezone=True), nullable=True, default=None)

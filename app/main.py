@@ -87,6 +87,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     app.state.gateway = LLMGateway(registry)  # type: ignore[attr-defined]
 
+    # TODO: 从 provider_configs 表加载活跃配置并注册到 gateway。
+    # 使用 app.provider.service.get_active_providers() 读取 → 解密 api_key
+    # → OpenAIProvider/AnthropicProvider → registry.register_llm(name, provider)。
+    # 同名 provider 时数据库配置覆盖环境变量。
+
     yield
 
     # ── shutdown ──────────────────────────────────────────────────────────
@@ -98,7 +103,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.1.0",
+    version=settings.app_version,
     lifespan=lifespan,
 )
 
@@ -140,7 +145,7 @@ async def health() -> dict:
     return Result.ok(
         {
             "app": settings.app_name,
-            "version": "0.1.0",
+            "version": settings.app_version,
             "metrics": get_metrics(),
         }
     ).model_dump()

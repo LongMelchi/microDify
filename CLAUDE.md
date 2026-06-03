@@ -151,7 +151,7 @@ class ChatApp(Base, TimestampsMixin):
 
 ### 文件规模硬上限
 
-`router.py` 150 行（超 → 拆子路由）｜`service.py` 400 行（超 → 提专项文件）｜`models.py` 100 行（超 → 评估拆模块）｜`schemas.py` 100 行（超 → 拆 `schemas/`）｜专项文件 300 行（超 → 继续拆）｜**前端组件/Hook 150 行**（超 → 提取子组件或辅助函数）
+`router.py` 300 行（超 → 拆子路由）｜`service.py` 800 行（超 → 提专项文件）｜`models.py` 200 行（超 → 评估拆模块）｜`schemas.py` 200 行（超 → 拆 `schemas/`）｜专项文件 600 行（超 → 继续拆）｜**前端组件/Hook 300 行**（超 → 提取子组件或辅助函数）
 
 ### 前端公共数据交互组件约束 🔴
 
