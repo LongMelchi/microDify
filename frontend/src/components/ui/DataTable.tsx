@@ -20,6 +20,7 @@ interface Column<T> {
   key: string;
   label: string;
   width?: string;
+  className?: string;
   render?: (row: T) => ReactNode;
 }
 
@@ -28,17 +29,28 @@ interface FetchResult<T> {
   total: number;
 }
 
+interface FetchArgs {
+  page: number;
+  pageSize: number;
+  params: Record<string, string>;
+}
+
 interface DataTableProps<T> {
   columns: Column<T>[];
-  fetchData: (params: { page: number; pageSize: number }) => Promise<FetchResult<T>>;
+  fetchData: (args: FetchArgs) => Promise<FetchResult<T>>;
+  /** Controlled filter params — changing them reloads from page 1. */
+  params?: Record<string, string>;
   pageSize?: number;
+  emptyIcon?: string;
   emptyTitle?: string;
   emptyDesc?: string;
-  emptyAction?: ReactNode;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
   onRowClick?: (row: T) => void;
 }
 
 export interface DataTableHandle {
+  /** Reload the current page (e.g. after a create/edit/delete mutation). */
   refresh: () => Promise<void>;
 }
 
@@ -48,10 +60,13 @@ function DataTableInner<T>(
   {
     columns,
     fetchData,
+    params = {},
     pageSize = 20,
+    emptyIcon,
     emptyTitle = "暂无数据",
     emptyDesc,
-    emptyAction,
+    emptyActionLabel,
+    onEmptyAction,
     onRowClick,
   }: DataTableProps<T>,
   ref: React.Ref<DataTableHandle>
@@ -63,17 +78,29 @@ function DataTableInner<T>(
   const [total, setTotal] = useState(0);
 
   const mountedRef = useRef(true);
+  // Hold the latest fetchData / params in refs so inline closures from the
+  // page don't retrigger the load effect (avoids render loops).
+  const fnRef = useRef(fetchData);
+  fnRef.current = fetchData;
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const pageRef = useRef(1);
 
   const load = useCallback(
     async (p: number) => {
       setLoading(true);
       setError(null);
       try {
-        const result = await fetchData({ page: p, pageSize });
+        const result = await fnRef.current({
+          page: p,
+          pageSize,
+          params: paramsRef.current,
+        });
         if (mountedRef.current) {
           setData(result.items);
           setTotal(result.total);
           setPage(p);
+          pageRef.current = p;
         }
       } catch (err) {
         if (mountedRef.current) {
@@ -85,19 +112,21 @@ function DataTableInner<T>(
         }
       }
     },
-    [fetchData, pageSize]
+    [pageSize]
   );
 
+  // Reload from page 1 on mount and whenever the controlled params change.
+  const paramsKey = JSON.stringify(params);
   useEffect(() => {
     mountedRef.current = true;
     load(1);
     return () => {
       mountedRef.current = false;
     };
-  }, [load]);
+  }, [load, paramsKey]);
 
   useImperativeHandle(ref, () => ({
-    refresh: () => load(page),
+    refresh: () => load(pageRef.current),
   }));
 
   /* ── Render states ──────────────────────────────── */
@@ -110,7 +139,7 @@ function DataTableInner<T>(
     return (
       <div className="bg-[var(--color-surface)] border-[3px] border-[var(--color-text)] rounded-[var(--radius-lg)] shadow-[4px_4px_0_rgba(26,26,46,0.10)] p-12 text-center">
         <p className="text-[var(--color-error)] font-medium mb-4">{error}</p>
-        <Button variant="secondary" size="sm" onClick={() => load(page)}>
+        <Button variant="secondary" size="sm" onClick={() => load(pageRef.current)}>
           重试
         </Button>
       </div>
@@ -120,9 +149,11 @@ function DataTableInner<T>(
   if (data.length === 0) {
     return (
       <EmptyState
+        icon={emptyIcon}
         title={emptyTitle}
         description={emptyDesc || "当前没有可显示的数据"}
-        actionLabel={undefined}
+        actionLabel={emptyActionLabel}
+        onAction={onEmptyAction}
       />
     );
   }
@@ -144,17 +175,22 @@ function DataTableInner<T>(
             {columns.map((col) => (
               <Table.Cell
                 key={col.key}
-                className={onRowClick ? "cursor-pointer" : ""}
+                className={`${col.className || ""} ${onRowClick ? "cursor-pointer" : ""}`}
               >
                 {col.render
                   ? col.render(row)
-                  : (row as Record<string, unknown>)[col.key] as ReactNode}
+                  : ((row as Record<string, unknown>)[col.key] as ReactNode)}
               </Table.Cell>
             ))}
           </Table.Row>
         ))}
       </Table.Body>
-      <Table.Footer total={total} page={page} onPageChange={(p) => load(p)} />
+      <Table.Footer
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={(p) => load(p)}
+      />
     </Table>
   );
 }

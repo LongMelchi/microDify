@@ -1,7 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useRequest } from "@/hooks/useRequest";
+import { get } from "@/lib/api";
+import { clearToken } from "@/lib/auth";
+
+interface MeInfo {
+  username: string;
+  email: string;
+  role: string;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "管理员",
+  developer: "开发者",
+  viewer: "查看者",
+};
 
 const MENU_ITEMS = [
   { href: "/", label: "仪表盘" },
@@ -17,6 +32,17 @@ const MENU_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: me } = useRequest<MeInfo>(() => get<MeInfo>("/auth/me"));
+
+  function handleLogout() {
+    clearToken();
+    router.replace("/login");
+  }
+
+  const displayName = me?.username || "...";
+  const roleLabel = me ? ROLE_LABELS[me.role] || me.role : "";
+  const initial = (me?.username || "?").charAt(0).toUpperCase();
 
   return (
     <aside className="w-[220px] min-w-[220px] bg-[var(--color-sidebar)] text-white sticky top-0 h-screen overflow-y-auto flex flex-col">
@@ -55,12 +81,20 @@ export default function Sidebar() {
       <div className="mt-auto bg-[var(--color-sidebar-hover)] border-t-2 border-[rgba(255,255,255,0.12)]">
         <div className="px-5 py-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-[var(--radius-sm)] bg-[var(--color-primary)] border-2 border-[var(--color-text)] flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0">
-            A
+            {initial}
           </div>
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold leading-tight truncate">admin</p>
-            <p className="text-[11px] text-[rgba(255,255,255,0.5)] leading-tight mt-0.5">管理员</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold leading-tight truncate">{displayName}</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.5)] leading-tight mt-0.5">{roleLabel}</p>
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="退出登录"
+            className="text-[11px] font-medium text-[rgba(255,255,255,0.65)] hover:text-white border border-[rgba(255,255,255,0.2)] hover:border-[rgba(255,255,255,0.4)] rounded-[var(--radius-sm)] px-2 py-1 transition-all duration-150 flex-shrink-0"
+          >
+            退出
+          </button>
         </div>
       </div>
     </aside>

@@ -116,14 +116,25 @@ async def get_active_providers(
     return list(result.scalars().all())
 
 
+def _mask_api_key(encrypted: str) -> str:
+    """解密后仅返回脱敏预览（首 4 + **** + 尾 4），绝不向前端暴露完整 key。"""
+    try:
+        plain = decrypt_api_key(encrypted)
+    except Exception:
+        return "****"
+    if len(plain) <= 8:
+        return "****"
+    return f"{plain[:4]}****{plain[-4:]}"
+
+
 def provider_to_response(config: ProviderConfig) -> dict:
-    """将 ORM 对象转为响应 dict（API Key 完整返回，由前端控制脱敏显示）。"""
+    """将 ORM 对象转为响应 dict（API Key 已脱敏，完整 key 永不出库到前端）。"""
     return {
         "id": str(config.id),
         "name": config.name,
         "provider_type": config.provider_type,
         "base_url": config.base_url,
-        "api_key": decrypt_api_key(config.api_key),  # 完整 key，前端控制显隐
+        "api_key": _mask_api_key(config.api_key),  # 脱敏预览，非完整 key
         "note": config.note,
         "is_active": config.is_active,
         "last_called_at": config.last_called_at.isoformat() if config.last_called_at else None,

@@ -44,7 +44,7 @@ microDify/
 
 | 模块 | 职责 |
 |------|------|
-| `provider` | OpenAI/Anthropic 适配 + 统一 LLMGateway（含嵌入），预留扩展 Adapter |
+| `provider` | OpenAI/Anthropic 适配 + 统一 LLMGateway（含嵌入），预留扩展 Adapter；提供商连接配置持久化（`provider_configs`，API Key 加密） |
 | `auth` | JWT 无状态认证 + 账号密码校验 |
 | `prompt` | 模板管理 + `{{variable}}` 变量插值 |
 | `knowledge` | PDF/DOCX/TXT/MD/CSV 上传、解析、语义分块、向量化 |
@@ -212,13 +212,16 @@ const [open, setOpen] = useState(false);
 
 ## 4. 数据模型 🔴
 
-16 张表：10 张业务表 + 4 张执行记录表 + 2 张多对多关联表。预定义工具不建表，存为 `agents.enabled_tools` JSON 列（工具名数组）。
+17 张表：11 张业务表 + 4 张执行记录表 + 2 张多对多关联表。预定义工具不建表，存为 `agents.enabled_tools` JSON 列（工具名数组）。
+
+> 注：`provider/` 原设计「配置走环境变量、不建表」，现已扩展为 DB 持久化的提供商连接管理（`provider_configs` 表，API Key 经 Fernet 加密存储），环境变量仍作为启动时的默认 provider 来源。
 
 **业务表**
 
 | 模块 | 表名 | 说明 |
 |------|------|------|
 | `auth/` | `users` | 用户，所有资源的归属点 |
+| `provider/` | `provider_configs` | LLM 提供商连接配置，API Key 加密存储 + 软删除 |
 | `prompt/` | `prompt_templates` | Prompt 模板，含 `{{variable}}` 占位符 |
 | `knowledge/` | `knowledge_bases` | 知识库 |
 | | `documents` | 上传的文档，归属一个知识库 |
@@ -245,7 +248,7 @@ const [open, setOpen] = useState(false);
 | `chat_app_knowledge_bases` | chat_apps ↔ knowledge_bases |
 | `agent_knowledge_bases` | agents ↔ knowledge_bases |
 
-**不产生独立数据表的模块**：`core/`（基础设施）、`common/`（工具层）、`provider/`（配置走环境变量）、`rag/`（直接操作 chunks 的 embedding 列）
+**不产生独立数据表的模块**：`core/`（基础设施）、`common/`（工具层）、`rag/`（直接操作 chunks 的 embedding 列）
 
 **核心关系链**
 

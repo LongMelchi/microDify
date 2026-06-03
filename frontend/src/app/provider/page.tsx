@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Table from "@/components/ui/Table";
+import DataTable, { type DataTableHandle } from "@/components/ui/DataTable";
 import { Input, Select } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Tag from "@/components/ui/Tag";
 import Modal from "@/components/ui/Modal";
-import Skeleton from "@/components/ui/Skeleton";
 import { showToast } from "@/components/ui/Toast";
 import { useRequest } from "@/hooks/useRequest";
 import { useConfirm } from "@/hooks/useConfirm";
-import { get, post, put, del, BizError } from "@/lib/api";
+import { getPage, post, put, del, BizError } from "@/lib/api";
 import { getHealth, type HealthInfo } from "@/lib/health";
+import { formatDateTime } from "@/lib/utils";
 
 /* ── Types ──────────────────────────────────────────── */
 
@@ -27,9 +27,14 @@ interface ProviderItem {
   created_at: string;
 }
 
-interface ProviderListData {
-  items: ProviderItem[];
-  total: number;
+interface TestResultState {
+  open: boolean;
+  ok: boolean;
+  provider: string;
+  model?: string;
+  sent?: string;
+  response?: string;
+  error?: string;
 }
 
 /* ── Helpers ────────────────────────────────────────── */
@@ -49,62 +54,35 @@ const typeTagVariants: Record<string, "primary" | "info" | "default"> = {
   openai: "primary",
   anthropic: "info",
 };
-const defaultTagVariant: "primary" | "info" | "default" = "default";
 
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  } catch {
-    return iso;
-  }
-}
-
-function formatDateTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
-  } catch {
-    return iso;
-  }
-}
+const typeOptions = [
+  { value: "openai", label: "OpenAI" },
+  { value: "anthropic", label: "Anthropic" },
+];
 
 /* ── Component ──────────────────────────────────────── */
 
 export default function ProviderPage() {
-  /* ── List state ─────────────────────────────────── */
+  const tableRef = useRef<DataTableHandle>(null);
+  const { confirm, ConfirmationDialog } = useConfirm();
+  const { data: health } = useRequest<HealthInfo>(() => getHealth());
 
-  const [page, setPage] = useState(1);
-  const pageRef = useRef(page);
-  pageRef.current = page;
-
-  const fetchProviders = () =>
-    get<ProviderListData>("/provider/configs", {
-      page: String(pageRef.current),
-      pageSize: "20",
+  const fetchProviders = (args: { page: number; pageSize: number }) =>
+    getPage<ProviderItem>("/provider/configs", {
+      page: String(args.page),
+      pageSize: String(args.pageSize),
     });
 
-  const { data, loading, error, execute } = useRequest<ProviderListData>(fetchProviders);
-
-  /* ── UI state ───────────────────────────────────── */
+  /* ── Modal / form state ─────────────────────────── */
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editData, setEditData] = useState<ProviderItem | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [testResult, setTestResult] = useState<{
-    open: boolean;
-    ok: boolean;
-    provider: string;
-    model?: string;
-    sent?: string;
-    response?: string;
-    error?: string;
-  }>({ open: false, ok: false, provider: "" });
-
-  const { data: health } = useRequest<HealthInfo>(() => getHealth());
-
-  /* ── Form state ─────────────────────────────────── */
+  const [testResult, setTestResult] = useState<TestResultState>({
+    open: false,
+    ok: false,
+    provider: "",
+  });
 
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState("openai");
@@ -113,10 +91,6 @@ export default function ProviderPage() {
   const [formNote, setFormNote] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formSaving, setFormSaving] = useState(false);
-
-  const { confirm, ConfirmationDialog } = useConfirm();
-
-  /* ── Modal ──────────────────────────────────────── */
 
   function openCreate() {
     setEditData(null);
@@ -134,24 +108,11 @@ export default function ProviderPage() {
     setFormName(p.name);
     setFormType(p.provider_type);
     setFormBaseUrl(p.base_url);
-    setFormApiKey(p.api_key);  // 后端返回完整 key，预填供修改
+    setFormApiKey(""); // 后端只回脱敏 key，编辑时留空表示不修改
     setFormNote(p.note || "");
     setFormErrors({});
     setModalOpen(true);
   }
-
-  /* ── API key toggle ─────────────────────────────── */
-
-  function maskKey(key: string): string {
-    if (key.length <= 8) return "****";
-    return key.slice(0, 4) + "****" + key.slice(-4);
-  }
-
-  function toggleKey(id: string) {
-    setShowKeys((prev) => ({ ...prev, [id]: !prev[id] }));
-  }
-
-  /* ── Validation ─────────────────────────────────── */
 
   function clearError(field: string) {
     setFormErrors((prev) => {
@@ -170,8 +131,6 @@ export default function ProviderPage() {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }
-
-  /* ── Save ───────────────────────────────────────── */
 
   async function handleSave() {
     if (!validate()) return;
@@ -198,7 +157,7 @@ export default function ProviderPage() {
         showToast("success", "提供商已添加");
       }
       setModalOpen(false);
-      execute();
+      tableRef.current?.refresh();
     } catch (err) {
       const msg = err instanceof BizError ? err.message : "保存失败";
       showToast("error", msg);
@@ -207,17 +166,13 @@ export default function ProviderPage() {
     }
   }
 
-  /* ── Delete ─────────────────────────────────────── */
-
   async function handleDelete(provider: ProviderItem) {
     const ok = await confirm(() => del(`/provider/configs/${provider.id}`));
     if (ok) {
       showToast("success", `已删除 ${provider.name}`);
-      execute();
+      tableRef.current?.refresh();
     }
   }
-
-  /* ── Test connection ────────────────────────────── */
 
   async function handleTest(provider: ProviderItem) {
     setTestingId(provider.id);
@@ -240,7 +195,7 @@ export default function ProviderPage() {
         error: result.error,
       });
       if (result.ok) {
-        execute();  // 刷新列表（状态已变为活跃）
+        tableRef.current?.refresh(); // 状态已变为活跃
       }
     } catch {
       setTestResult({
@@ -254,20 +209,98 @@ export default function ProviderPage() {
     }
   }
 
-  /* ── Pagination ─────────────────────────────────── */
+  /* ── Columns ────────────────────────────────────── */
 
-  function handlePageChange(p: number) {
-    setPage(p);
-    pageRef.current = p;
-    execute();
-  }
+  const columns = [
+    {
+      key: "name",
+      label: "名称",
+      render: (p: ProviderItem) => (
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-8 h-8 rounded-[var(--radius-sm)] ${typeColors[p.provider_type] || defaultColor} border-2 border-[var(--color-text)] flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0`}
+          >
+            {p.name.charAt(0)}
+          </div>
+          <span className="font-semibold">{p.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: "provider_type",
+      label: "类型",
+      render: (p: ProviderItem) => (
+        <Tag variant={typeTagVariants[p.provider_type] || "default"}>
+          {typeLabels[p.provider_type] || p.provider_type}
+        </Tag>
+      ),
+    },
+    {
+      key: "base_url",
+      label: "Base URL",
+      className: "font-[var(--font-mono)] text-[13px] max-w-[220px] truncate",
+      render: (p: ProviderItem) => p.base_url,
+    },
+    {
+      key: "api_key",
+      label: "API Key",
+      className: "font-[var(--font-mono)] text-[13px]",
+      render: (p: ProviderItem) => p.api_key,
+    },
+    {
+      key: "note",
+      label: "备注",
+      className: "text-[13px] text-[var(--color-text-secondary)] max-w-[180px] truncate",
+      render: (p: ProviderItem) => p.note || "--",
+    },
+    {
+      key: "is_active",
+      label: "状态",
+      render: (p: ProviderItem) => (
+        <Tag variant={p.is_active ? "success" : "warning"}>
+          {p.is_active ? "活跃" : "未激活"}
+        </Tag>
+      ),
+    },
+    {
+      key: "last_called_at",
+      label: "最近调用",
+      className: "text-[12px] text-[var(--color-text-secondary)]",
+      render: (p: ProviderItem) => (p.last_called_at ? formatDateTime(p.last_called_at) : "--"),
+    },
+    {
+      key: "actions",
+      label: "操作",
+      render: (p: ProviderItem) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={testingId === p.id}
+            onClick={() => handleTest(p)}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 text-[13px] font-semibold rounded-[var(--radius-md)] border-2 border-[var(--color-text)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-[2px_2px_0_rgba(26,26,46,0.10)] transition-all duration-150 ease-out cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none min-h-[36px]"
+          >
+            {testingId === p.id && (
+              <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            )}
+            {testingId === p.id ? "测试中..." : "测试连接"}
+          </button>
+          <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
+            编辑
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="!text-[var(--color-error)]"
+            onClick={() => handleDelete(p)}
+          >
+            删除
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   /* ── Render ─────────────────────────────────────── */
-
-  const typeOptions = [
-    { value: "openai", label: "OpenAI" },
-    { value: "anthropic", label: "Anthropic" },
-  ];
 
   return (
     <div>
@@ -288,124 +321,16 @@ export default function ProviderPage() {
         </Button>
       </div>
 
-      {/* Loading */}
-      {loading ? (
-        <Skeleton.Table rows={5} />
-      ) : error ? (
-        <div className="bg-[var(--color-surface)] border-[3px] border-[var(--color-text)] rounded-[var(--radius-lg)] shadow-[4px_4px_0_rgba(26,26,46,0.10)] p-12 text-center">
-          <p className="text-[var(--color-error)] font-medium mb-4">{error}</p>
-          <Button variant="secondary" size="sm" onClick={execute}>重试</Button>
-        </div>
-      ) : !data || data.items.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--color-bg)] border-[3px] border-[var(--color-border)] flex items-center justify-center text-2xl text-[var(--color-text-tertiary)]">
-            ⚡
-          </div>
-          <h3 className="text-base font-semibold mb-2">暂无提供商</h3>
-          <p className="text-[var(--color-text-secondary)] mb-5">
-            还没有配置任何 LLM 提供商，点击上方按钮添加
-          </p>
-          <Button variant="primary" size="sm" onClick={openCreate}>
-            新增提供商
-          </Button>
-        </div>
-      ) : (
-        <Table>
-          <Table.Head>
-            <Table.Row>
-              <Table.HeaderCell>名称</Table.HeaderCell>
-              <Table.HeaderCell>类型</Table.HeaderCell>
-              <Table.HeaderCell>Base URL</Table.HeaderCell>
-              <Table.HeaderCell>API Key</Table.HeaderCell>
-              <Table.HeaderCell>备注</Table.HeaderCell>
-              <Table.HeaderCell>状态</Table.HeaderCell>
-              <Table.HeaderCell>最近调用</Table.HeaderCell>
-              <Table.HeaderCell>操作</Table.HeaderCell>
-            </Table.Row>
-          </Table.Head>
-          <Table.Body>
-            {data.items.map((p) => (
-              <Table.Row key={p.id}>
-                <Table.Cell>
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={`w-8 h-8 rounded-[var(--radius-sm)] ${typeColors[p.provider_type] || defaultColor} border-2 border-[var(--color-text)] flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0`}
-                    >
-                      {p.name.charAt(0)}
-                    </div>
-                    <span className="font-semibold">{p.name}</span>
-                  </div>
-                </Table.Cell>
-                <Table.Cell>
-                  <Tag variant={typeTagVariants[p.provider_type] || defaultTagVariant}>
-                    {typeLabels[p.provider_type] || p.provider_type}
-                  </Tag>
-                </Table.Cell>
-                <Table.Cell className="font-[var(--font-mono)] text-[13px] max-w-[220px] truncate">
-                  {p.base_url}
-                </Table.Cell>
-                <Table.Cell>
-                  <div className="flex items-center gap-2">
-                    <span className="font-[var(--font-mono)] text-[13px]">
-                      {showKeys[p.id] ? p.api_key : maskKey(p.api_key)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => toggleKey(p.id)}
-                      className="text-[11px] font-medium text-[var(--color-primary)] cursor-pointer border-2 border-[var(--color-border)] rounded-[var(--radius-sm)] px-2 py-0.5 bg-[var(--color-surface)] hover:border-[var(--color-primary)] transition-all duration-150"
-                    >
-                      {showKeys[p.id] ? "隐藏" : "显示"}
-                    </button>
-                  </div>
-                </Table.Cell>
-                <Table.Cell className="text-[13px] text-[var(--color-text-secondary)] max-w-[180px] truncate">
-                  {p.note || "--"}
-                </Table.Cell>
-                <Table.Cell>
-                  <Tag variant={p.is_active ? "success" : "warning"}>
-                    {p.is_active ? "活跃" : "未激活"}
-                  </Tag>
-                </Table.Cell>
-                <Table.Cell className="text-[12px] text-[var(--color-text-secondary)]">
-                  {p.last_called_at ? formatDateTime(p.last_called_at) : "--"}
-                </Table.Cell>
-                <Table.Cell>
-                  <div className="flex items-center gap-1">
-{/* 测试按钮用原生 button 而非 <Button> 组件，因为需要在 loading 时保留文字可见（Button 的 loading 会隐藏文字） */}                    <button
-                      type="button"
-                      disabled={testingId === p.id}
-                      onClick={() => handleTest(p)}
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 text-[13px] font-semibold rounded-[var(--radius-md)] border-2 border-[var(--color-text)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-[2px_2px_0_rgba(26,26,46,0.10)] transition-all duration-150 ease-out cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none min-h-[36px]"
-                    >
-                      {testingId === p.id && (
-                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      )}
-                      {testingId === p.id ? "测试中..." : "测试连接"}
-                    </button>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                      编辑
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="!text-[var(--color-error)]"
-                      onClick={() => handleDelete(p)}
-                    >
-                      删除
-                    </Button>
-                  </div>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-          <Table.Footer
-            total={data.total}
-            page={page}
-            pageSize={20}
-            onPageChange={handlePageChange}
-          />
-        </Table>
-      )}
+      <DataTable<ProviderItem>
+        ref={tableRef}
+        columns={columns}
+        fetchData={fetchProviders}
+        emptyIcon="⚡"
+        emptyTitle="暂无提供商"
+        emptyDesc="还没有配置任何 LLM 提供商，点击下方按钮添加"
+        emptyActionLabel="新增提供商"
+        onEmptyAction={openCreate}
+      />
 
       {/* Create / Edit modal */}
       <Modal
@@ -432,12 +357,7 @@ export default function ProviderPage() {
             error={formErrors.name}
             onChange={(e) => { setFormName(e.target.value); clearError("name"); }}
           />
-          <Select
-            label="类型"
-            value={formType}
-            onChange={setFormType}
-            options={typeOptions}
-          />
+          <Select label="类型" value={formType} onChange={setFormType} options={typeOptions} />
           <Input
             label="Base URL"
             required

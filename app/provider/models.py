@@ -5,6 +5,7 @@
 """
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -31,7 +32,10 @@ class ProviderConfig(Base, TimestampsMixin, SoftDeleteMixin):
     base_url: Mapped[str] = mapped_column(String(500), nullable=False)
     api_key: Mapped[str] = mapped_column(String(500), nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 默认未激活 — 由 service 在「测试连接」通过后才置为 True。
     is_active: Mapped[bool] = mapped_column(
-        Boolean, default=True, nullable=False, index=True
+        Boolean, default=False, nullable=False, index=True
     )
-    last_called_at = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    last_called_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )

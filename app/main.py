@@ -25,7 +25,7 @@ from app.core.schemas import Result
 # ── Module routers ──────────────────────────────────────────────────────────
 # core/      — no router to mount (infrastructure only)
 # common/    — not mounted (internal utilities, not an API surface)
-# provider/  — not mounted (internal LLM adapter, config via env vars)
+# provider/  — mounted: LLM provider config CRUD + gateway status/test endpoints
 
 from app.auth import router as auth_router
 from app.provider import router as provider_router

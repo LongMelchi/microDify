@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
-import Table from "@/components/ui/Table";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Input";
+import { useState, useRef, useMemo } from "react";
+import DataTable, { type DataTableHandle } from "@/components/ui/DataTable";
+import { Input, Select } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Tag from "@/components/ui/Tag";
 import Modal from "@/components/ui/Modal";
-import Skeleton from "@/components/ui/Skeleton";
 import { showToast } from "@/components/ui/Toast";
-import { useRequest } from "@/hooks/useRequest";
 import { useConfirm } from "@/hooks/useConfirm";
-import { get, post, put, del, BizError } from "@/lib/api";
+import { getPage, post, put, del, BizError } from "@/lib/api";
+import { formatDate } from "@/lib/utils";
 
 /* ── Types ──────────────────────────────────────────── */
 
@@ -24,11 +22,6 @@ interface UserItem {
   created_at: string;
 }
 
-interface UserListData {
-  items: UserItem[];
-  total: number;
-}
-
 /* ── Helpers ────────────────────────────────────────── */
 
 const avatarColors = [
@@ -37,14 +30,21 @@ const avatarColors = [
   "bg-[var(--color-accent)]",
 ];
 
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  } catch {
-    return iso;
-  }
+function avatarColor(name: string): string {
+  const code = name.charCodeAt(0) || 0;
+  return avatarColors[code % avatarColors.length];
 }
+
+const roleMap: Record<string, { label: string; variant: "primary" | "info" | "default" }> = {
+  admin: { label: "管理员", variant: "primary" },
+  developer: { label: "开发者", variant: "info" },
+  viewer: { label: "查看者", variant: "default" },
+};
+
+const statusMap: Record<string, { label: string; variant: "success" | "warning" }> = {
+  active: { label: "活跃", variant: "success" },
+  inactive: { label: "未激活", variant: "warning" },
+};
 
 function validateField(field: string, value: string): string | undefined {
   if (field === "username") {
@@ -63,53 +63,38 @@ function validateField(field: string, value: string): string | undefined {
 /* ── Component ──────────────────────────────────────── */
 
 export default function UsersPage() {
-  /* ── Filter state ───────────────────────────────── */
+  const tableRef = useRef<DataTableHandle>(null);
+  const { confirm, ConfirmationDialog } = useConfirm();
+
+  /* ── Filters ────────────────────────────────────── */
 
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const pageRef = useRef(page);
-  pageRef.current = page;
 
-  /* ── Data fetching ──────────────────────────────── */
+  const params = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (appliedSearch) {
+      p.email = appliedSearch;
+      p.username = appliedSearch;
+    }
+    if (statusFilter !== "all") p.status = statusFilter;
+    return p;
+  }, [appliedSearch, statusFilter]);
 
-  const fetchUsers = () => {
-    const params: Record<string, string> = { page: String(pageRef.current), pageSize: "20" };
-    const s = search.trim();
-    if (s) { params.email = s; params.username = s; }
-    if (statusFilter !== "all") params.status = statusFilter;
-    return get<UserListData>("/auth/users", params);
-  };
-
-  const { data, loading, error, execute } = useRequest<UserListData>(fetchUsers);
-
-  /* ── Search ─────────────────────────────────────── */
+  const fetchUsers = (args: { page: number; pageSize: number; params: Record<string, string> }) =>
+    getPage<UserItem>("/auth/users", {
+      page: String(args.page),
+      pageSize: String(args.pageSize),
+      ...args.params,
+    });
 
   function handleSearch() {
-    setPage(1);
-    pageRef.current = 1;
-    execute();
+    setAppliedSearch(search.trim());
   }
 
   function handleSearchKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") handleSearch();
-  }
-
-  /* ── Status filter ──────────────────────────────── */
-
-  function handleStatusChange(val: string) {
-    setStatusFilter(val);
-    setPage(1);
-    pageRef.current = 1;
-    execute();
-  }
-
-  /* ── Pagination ─────────────────────────────────── */
-
-  function handlePageChange(p: number) {
-    setPage(p);
-    pageRef.current = p;
-    execute();
   }
 
   /* ── Create user modal ──────────────────────────── */
@@ -129,10 +114,6 @@ export default function UsersPage() {
   const [editUsername, setEditUsername] = useState("");
   const [editStatus, setEditStatus] = useState("active");
   const [editLoading, setEditLoading] = useState(false);
-
-  const { confirm, ConfirmationDialog } = useConfirm();
-
-  /* ── Create handlers ────────────────────────────── */
 
   function openCreate() {
     setFormUsername("");
@@ -188,7 +169,7 @@ export default function UsersPage() {
       });
       showToast("success", `用户 ${formUsername} 创建成功`);
       setCreateOpen(false);
-      execute();
+      tableRef.current?.refresh();
     } catch (err) {
       if (err instanceof BizError) {
         setFormErrors((prev) => ({ ...prev, email: err.message }));
@@ -199,8 +180,6 @@ export default function UsersPage() {
       setFormLoading(false);
     }
   }
-
-  /* ── Edit handlers ──────────────────────────────── */
 
   function openEdit(user: UserItem) {
     setEditUser(user);
@@ -223,7 +202,7 @@ export default function UsersPage() {
       });
       showToast("success", "用户信息已更新");
       setEditOpen(false);
-      execute();
+      tableRef.current?.refresh();
     } catch (err) {
       const msg = err instanceof BizError ? err.message : "更新失败";
       showToast("error", msg);
@@ -232,58 +211,81 @@ export default function UsersPage() {
     }
   }
 
-  /* ── Delete handler ─────────────────────────────── */
-
   async function handleDelete(user: UserItem) {
     const ok = await confirm(() => del(`/auth/users/${user.id}`));
     if (ok) {
       showToast("success", `已删除用户 ${user.username}`);
-      execute();
+      tableRef.current?.refresh();
     }
   }
 
-  /* ── Render: loading ────────────────────────────── */
+  /* ── Columns ────────────────────────────────────── */
 
-  if (loading) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6">用户管理</h1>
-        <Skeleton.Table rows={5} />
-      </div>
-    );
-  }
-
-  /* ── Render: error ──────────────────────────────── */
-
-  if (error) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6">用户管理</h1>
-        <div className="bg-[var(--color-surface)] border-[3px] border-[var(--color-text)] rounded-[var(--radius-lg)] shadow-[4px_4px_0_rgba(26,26,46,0.10)] p-12 text-center">
-          <p className="text-[var(--color-error)] font-medium mb-4">{error}</p>
-          <Button variant="secondary" size="sm" onClick={execute}>
-            重试
+  const columns = [
+    {
+      key: "username",
+      label: "用户",
+      render: (u: UserItem) => (
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-8 h-8 rounded-[var(--radius-sm)] ${avatarColor(u.username)} border-2 border-[var(--color-text)] flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0`}
+          >
+            {u.username.charAt(0).toUpperCase()}
+          </div>
+          <span className="font-semibold">{u.username}</span>
+        </div>
+      ),
+    },
+    {
+      key: "email",
+      label: "邮箱",
+      className: "font-[var(--font-mono)] text-[13px]",
+      render: (u: UserItem) => u.email,
+    },
+    {
+      key: "role",
+      label: "角色",
+      render: (u: UserItem) => {
+        const r = roleMap[u.role] || roleMap.developer;
+        return <Tag variant={r.variant}>{r.label}</Tag>;
+      },
+    },
+    {
+      key: "status",
+      label: "状态",
+      render: (u: UserItem) => {
+        const s = statusMap[u.status] || statusMap.inactive;
+        return <Tag variant={s.variant}>{s.label}</Tag>;
+      },
+    },
+    {
+      key: "created_at",
+      label: "创建时间",
+      className: "text-[12px] text-[var(--color-text-secondary)]",
+      render: (u: UserItem) => formatDate(u.created_at),
+    },
+    {
+      key: "actions",
+      label: "操作",
+      render: (u: UserItem) => (
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>
+            编辑
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="!text-[var(--color-error)]"
+            onClick={() => handleDelete(u)}
+          >
+            删除
           </Button>
         </div>
-      </div>
-    );
-  }
+      ),
+    },
+  ];
 
-  /* ── Render: list ───────────────────────────────── */
-
-  const users = data?.items || [];
-  const total = data?.total || 0;
-
-  const roleMap: Record<string, { label: string; variant: "primary" | "info" | "default" }> = {
-    admin: { label: "管理员", variant: "primary" },
-    developer: { label: "开发者", variant: "info" },
-    viewer: { label: "查看者", variant: "default" },
-  };
-
-  const statusMap: Record<string, { label: string; variant: "success" | "warning" }> = {
-    active: { label: "活跃", variant: "success" },
-    inactive: { label: "未激活", variant: "warning" },
-  };
+  /* ── Render ─────────────────────────────────────── */
 
   return (
     <div>
@@ -298,7 +300,7 @@ export default function UsersPage() {
           <div style={{ width: 140 }}>
             <Select
               value={statusFilter}
-              onChange={handleStatusChange}
+              onChange={setStatusFilter}
               options={[
                 { value: "all", label: "全部状态" },
                 { value: "active", label: "活跃" },
@@ -324,86 +326,17 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {/* User table */}
-      {users.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--color-bg)] border-[3px] border-[var(--color-border)] flex items-center justify-center text-2xl text-[var(--color-text-tertiary)]">
-            👤
-          </div>
-          <h3 className="text-base font-semibold mb-2">暂无用户</h3>
-          <p className="text-[var(--color-text-secondary)] mb-5">
-            还没有任何用户账号，点击上方按钮创建第一个用户
-          </p>
-          <Button variant="primary" size="sm" onClick={openCreate}>
-            新建用户
-          </Button>
-        </div>
-      ) : (
-        <Table>
-          <Table.Head>
-            <Table.Row>
-              <Table.HeaderCell>用户</Table.HeaderCell>
-              <Table.HeaderCell>邮箱</Table.HeaderCell>
-              <Table.HeaderCell>角色</Table.HeaderCell>
-              <Table.HeaderCell>状态</Table.HeaderCell>
-              <Table.HeaderCell>创建时间</Table.HeaderCell>
-              <Table.HeaderCell>操作</Table.HeaderCell>
-            </Table.Row>
-          </Table.Head>
-          <Table.Body>
-            {users.map((user, i) => {
-              const role = roleMap[user.role] || roleMap.developer;
-              const status = statusMap[user.status] || statusMap.inactive;
-              return (
-                <Table.Row key={user.id}>
-                  <Table.Cell>
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={`w-8 h-8 rounded-[var(--radius-sm)] ${avatarColors[i % 3]} border-2 border-[var(--color-text)] flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0`}
-                      >
-                        {user.username.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-semibold">{user.username}</span>
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell className="font-[var(--font-mono)] text-[13px]">
-                    {user.email}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Tag variant={role.variant}>{role.label}</Tag>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Tag variant={status.variant}>{status.label}</Tag>
-                  </Table.Cell>
-                  <Table.Cell className="text-[12px] text-[var(--color-text-secondary)]">
-                    {formatDate(user.created_at)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(user)}
-                      >
-                        编辑
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="!text-[var(--color-error)]"
-                        onClick={() => handleDelete(user)}
-                      >
-                        删除
-                      </Button>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })}
-          </Table.Body>
-          <Table.Footer total={total} page={page} onPageChange={handlePageChange} />
-        </Table>
-      )}
+      <DataTable<UserItem>
+        ref={tableRef}
+        columns={columns}
+        fetchData={fetchUsers}
+        params={params}
+        emptyIcon="👤"
+        emptyTitle="暂无用户"
+        emptyDesc="还没有任何用户账号，点击下方按钮创建第一个用户"
+        emptyActionLabel="新建用户"
+        onEmptyAction={openCreate}
+      />
 
       {/* Create user modal */}
       <Modal

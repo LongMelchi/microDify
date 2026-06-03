@@ -36,9 +36,10 @@ import app.prompt.models  # noqa: F401 — prompt_templates
 import app.knowledge.models  # noqa: F401 — knowledge_bases, documents, chunks
 import app.chat.models  # noqa: F401 — chat_apps, conversations, messages
 import app.agent.models  # noqa: F401 — agents, agent_executions
+import app.provider.models  # noqa: F401 — provider_configs
 
-# NOTE: rag/ and provider/ produce no independent tables (rag/ operates on
-# the chunk embedding column; provider/ is env-var driven).
+# NOTE: rag/ produces no independent tables (operates on the chunk embedding
+# column). provider/ stores LLM provider connections in provider_configs.
 
 import app.workflow.models  # noqa: F401 — workflows, workflow_nodes,
 #                                   workflow_edges, workflow_executions
@@ -47,7 +48,7 @@ import app.workflow.models  # noqa: F401 — workflows, workflow_nodes,
 #   - common/  — no models (utility services)
 #   - core/    — only abstract base (CoreModel in core/models.py)
 #   - rag/     — operates on knowledge.chunks.embedding column
-#   - provider/ — no models (config via env vars)
+#   - provider/ — provider_configs table (LLM provider connections)
 
 # ── Runtime override of the database URL ──────────────────────────────────
 # Read the connection string from the application's canonical settings so

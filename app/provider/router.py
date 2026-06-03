@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.deps import get_db, get_gateway
-from app.core.schemas import Result
+from app.core.deps import get_current_user_id, get_db, get_gateway
+from app.core.schemas import PageResult, Result
 from app.provider import schemas as provider_schemas
 from app.provider import service as provider_service
 
@@ -30,7 +30,7 @@ class TestChatRequest(BaseModel):
 
 
 @router.get("/status")
-async def provider_status(request: Request):
+async def provider_status(request: Request, _=Depends(get_current_user_id)):
     """Return registered providers and their API key status."""
     gw = request.app.state.gateway
     return Result.ok(
@@ -45,6 +45,7 @@ async def provider_status(request: Request):
 async def provider_test_chat(
     body: TestChatRequest,
     gw=Depends(get_gateway),
+    _=Depends(get_current_user_id),
 ):
     """Send a single test message and return the response (non-streaming)."""
     model = body.model or settings.default_llm_model
@@ -60,19 +61,21 @@ async def list_configs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100, alias="pageSize"),
     db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
 ) -> dict:
-    """分页获取提供商配置列表。"""
+    """分页获取提供商配置列表。需登录。"""
     items, total = await provider_service.list_providers(db, page=page, page_size=page_size)
     data = [provider_service.provider_to_response(c) for c in items]
-    return Result.ok({"items": data, "total": total}).model_dump()
+    return PageResult.ok(data, total=total, page=page, size=page_size).model_dump()
 
 
 @router.post("/configs")
 async def create_config(
     body: provider_schemas.ProviderConfigCreate,
     db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
 ) -> dict:
-    """新增提供商配置。"""
+    """新增提供商配置。需登录。"""
     config = await provider_service.create_provider(
         db,
         name=body.name,
@@ -89,8 +92,9 @@ async def update_config(
     config_id: uuid.UUID,
     body: provider_schemas.ProviderConfigUpdate,
     db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
 ) -> dict:
-    """更新提供商配置。"""
+    """更新提供商配置。需登录。"""
     config = await provider_service.update_provider(
         db,
         config_id,
@@ -108,8 +112,9 @@ async def update_config(
 async def delete_config(
     config_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
 ) -> dict:
-    """删除提供商配置（软删除）。"""
+    """删除提供商配置（软删除）。需登录。"""
     await provider_service.delete_provider(db, config_id)
     return Result.ok(None).model_dump()
 
@@ -118,8 +123,9 @@ async def delete_config(
 async def test_config(
     config_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
 ) -> dict:
-    """测试指定提供商配置的连接。"""
+    """测试指定提供商配置的连接。需登录。"""
     from app.core.security import decrypt_api_key
 
     config = await provider_service.get_provider(db, config_id)

@@ -69,10 +69,16 @@ async def create_user(
     if existing.scalar_one_or_none():
         raise BizException(ErrorCode.BAD_REQUEST, detail="邮箱已存在")
 
+    # Bootstrap: the very first registered account becomes the admin so that
+    # there is always someone able to manage users and provider configs.
+    user_count = await db.execute(select(func.count(User.id)))
+    role = "admin" if (user_count.scalar() or 0) == 0 else "developer"
+
     user = User(
         email=email,
         username=username,
         hashed_password=hash_password(password),
+        role=role,
     )
     db.add(user)
     await db.flush()

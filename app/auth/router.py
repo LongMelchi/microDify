@@ -10,11 +10,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import schemas, service
-from app.auth.deps import get_current_user
+from app.auth.deps import get_current_user, require_admin
 from app.common.redis_client import RedisClient, get_redis
 from app.core.deps import get_db
 from app.core.exceptions import BizException, ErrorCode
-from app.core.schemas import Result
+from app.core.schemas import PageResult, Result
 from app.core.security import create_token
 
 router = APIRouter(
@@ -106,8 +106,9 @@ async def list_users(
     role: str | None = Query(None),
     status: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
 ) -> dict:
-    """分页获取用户列表，支持搜索和筛选。"""
+    """分页获取用户列表，支持搜索和筛选。需登录。"""
     items, total = await service.list_users(
         db,
         page=page,
@@ -118,7 +119,9 @@ async def list_users(
         status=status,
     )
     user_list = [schemas.UserResponse.model_validate(u).model_dump() for u in items]
-    return Result.ok({"items": user_list, "total": total}).model_dump()
+    return PageResult.ok(
+        user_list, total=total, page=page, size=page_size
+    ).model_dump()
 
 
 @router.put("/users/{user_id}")
@@ -126,8 +129,9 @@ async def update_user(
     user_id: uuid.UUID,
     body: schemas.UserUpdate,
     db: AsyncSession = Depends(get_db),
+    _=Depends(require_admin),
 ) -> dict:
-    """更新用户信息（用户名、状态，只更新传入字段）。"""
+    """更新用户信息（用户名、状态，只更新传入字段）。需管理员。"""
     user = await service.update_user(
         db, user_id, username=body.username, status=body.status
     )
@@ -140,7 +144,8 @@ async def update_user(
 async def delete_user(
     user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _=Depends(require_admin),
 ) -> dict:
-    """删除用户（物理删除）。"""
+    """删除用户（物理删除）。需管理员。"""
     await service.delete_user(db, user_id)
     return Result.ok(None).model_dump()

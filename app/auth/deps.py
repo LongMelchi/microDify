@@ -38,3 +38,14 @@ async def get_current_user(
     if user is None:
         raise BizException(ErrorCode.UNAUTHORIZED, detail="用户不存在")
     return user
+
+
+async def require_admin(user=Depends(get_current_user)):
+    """Return the current user only if it has the ``admin`` role.
+
+    Use as a FastAPI ``Depends`` to gate management endpoints (user CRUD,
+    provider config CRUD) behind the admin role.  Raises ``403`` otherwise.
+    """
+    if getattr(user, "role", None) != "admin":
+        raise BizException(ErrorCode.FORBIDDEN, detail="需要管理员权限")
+    return user

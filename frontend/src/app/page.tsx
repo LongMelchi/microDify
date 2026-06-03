@@ -5,14 +5,8 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
 import { useRequest } from "@/hooks/useRequest";
-import { get } from "@/lib/api";
+import { getPage, type Page } from "@/lib/api";
 import { getHealth, formatUptime, type HealthInfo } from "@/lib/health";
-
-/* ── Types ──────────────────────────────────────────── */
-
-interface UserListData {
-  total: number;
-}
 
 /* ── Static activity ────────────────────────────────── */
 
@@ -64,7 +58,9 @@ export default function DashboardPage() {
   const {
     data: userData,
     loading: userLoading,
-  } = useRequest<UserListData>(() => get("/auth/users", { page: "1", pageSize: "1" }));
+  } = useRequest<Page<unknown>>(() =>
+    getPage("/auth/users", { page: "1", pageSize: "1" })
+  );
 
   const m = health?.metrics;
   const backendOnline = !healthError && health;
