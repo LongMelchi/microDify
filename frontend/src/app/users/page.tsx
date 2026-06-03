@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Table from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Input";
@@ -11,7 +11,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import { showToast } from "@/components/ui/Toast";
 import { useRequest } from "@/hooks/useRequest";
 import { useConfirm } from "@/hooks/useConfirm";
-import { get, post, put, BizError } from "@/lib/api";
+import { get, post, put, del, BizError } from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────── */
 
@@ -19,8 +19,8 @@ interface UserItem {
   id: string;
   username: string;
   email: string;
-  role: "admin" | "developer" | "viewer";
-  status: "active" | "inactive";
+  role: string;
+  status: string;
   created_at: string;
 }
 
@@ -46,33 +46,71 @@ function formatDate(iso: string): string {
   }
 }
 
-/* ── Validators ─────────────────────────────────────── */
-
-function validateField(field: string, value: string, password?: string): string | undefined {
-  switch (field) {
-    case "username":
-      if (!value.trim() || value.trim().length < 2) return "用户名至少 2 个字符";
-      return undefined;
-    case "email":
-      if (!value.trim()) return "请输入邮箱地址";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return "请输入有效的邮箱地址";
-      return undefined;
-    case "password":
-      if (value.length < 8) return "密码至少 8 个字符";
-      return undefined;
-    default:
-      return undefined;
+function validateField(field: string, value: string): string | undefined {
+  if (field === "username") {
+    if (!value.trim() || value.trim().length < 2) return "用户名至少 2 个字符";
   }
+  if (field === "email") {
+    if (!value.trim()) return "请输入邮箱地址";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return "请输入有效的邮箱地址";
+  }
+  if (field === "password") {
+    if (value.length < 8) return "密码至少 8 个字符";
+  }
+  return undefined;
 }
 
 /* ── Component ──────────────────────────────────────── */
 
 export default function UsersPage() {
-  /* ── List state ─────────────────────────────────── */
+  /* ── Filter state ───────────────────────────────── */
 
-  const { data, loading, error, execute } = useRequest<UserListData>(
-    () => get("/auth/users", { page: "1", pageSize: "20" })
-  );
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageRef = useRef(page);
+  pageRef.current = page;
+
+  /* ── Data fetching ──────────────────────────────── */
+
+  const fetchUsers = () => {
+    const params: Record<string, string> = { page: String(pageRef.current), pageSize: "20" };
+    const s = search.trim();
+    if (s) { params.email = s; params.username = s; }
+    if (statusFilter !== "all") params.status = statusFilter;
+    return get<UserListData>("/auth/users", params);
+  };
+
+  const { data, loading, error, execute } = useRequest<UserListData>(fetchUsers);
+
+  /* ── Search ─────────────────────────────────────── */
+
+  function handleSearch() {
+    setPage(1);
+    pageRef.current = 1;
+    execute();
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") handleSearch();
+  }
+
+  /* ── Status filter ──────────────────────────────── */
+
+  function handleStatusChange(val: string) {
+    setStatusFilter(val);
+    setPage(1);
+    pageRef.current = 1;
+    execute();
+  }
+
+  /* ── Pagination ─────────────────────────────────── */
+
+  function handlePageChange(p: number) {
+    setPage(p);
+    pageRef.current = p;
+    execute();
+  }
 
   /* ── Create user modal ──────────────────────────── */
 
@@ -84,11 +122,17 @@ export default function UsersPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [refreshing, setRefreshing] = useState(false);
+  /* ── Edit user modal ────────────────────────────── */
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editUser, setEditUser] = useState<UserItem | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editStatus, setEditStatus] = useState("active");
+  const [editLoading, setEditLoading] = useState(false);
+
   const { confirm, ConfirmationDialog } = useConfirm();
+
+  /* ── Create handlers ────────────────────────────── */
 
   function openCreate() {
     setFormUsername("");
@@ -99,7 +143,7 @@ export default function UsersPage() {
     setCreateOpen(true);
   }
 
-  function blurField(field: string) {
+  function blurCreateField(field: string) {
     let err: string | undefined;
     if (field === "confirmPassword") {
       err = formPassword !== formConfirmPassword ? "两次密码输入不一致" : undefined;
@@ -130,15 +174,6 @@ export default function UsersPage() {
     if (pe) errors.password = pe;
     if (ce) errors.confirmPassword = ce;
     setFormErrors(errors);
-    if (errors.username) {
-      document.getElementById("用户名")?.focus();
-    } else if (errors.email) {
-      document.getElementById("邮箱地址")?.focus();
-    } else if (errors.password) {
-      document.getElementById("初始密码")?.focus();
-    } else if (errors.confirmPassword) {
-      document.getElementById("确认密码")?.focus();
-    }
     return Object.keys(errors).length === 0;
   }
 
@@ -153,9 +188,7 @@ export default function UsersPage() {
       });
       showToast("success", `用户 ${formUsername} 创建成功`);
       setCreateOpen(false);
-      setRefreshing(true);
-      await execute();
-      setRefreshing(false);
+      execute();
     } catch (err) {
       if (err instanceof BizError) {
         setFormErrors((prev) => ({ ...prev, email: err.message }));
@@ -167,20 +200,45 @@ export default function UsersPage() {
     }
   }
 
-  /* ── Toggle user status ─────────────────────────── */
+  /* ── Edit handlers ──────────────────────────────── */
 
-  async function handleToggleStatus(user: UserItem) {
-    const action = user.status === "active" ? "禁用" : "启用";
-    const ok = await confirm(() =>
-      put(`/auth/users/${user.id}`, {
-        status: user.status === "active" ? "inactive" : "active",
-      })
-    );
+  function openEdit(user: UserItem) {
+    setEditUser(user);
+    setEditUsername(user.username);
+    setEditStatus(user.status);
+    setEditOpen(true);
+  }
+
+  async function handleEdit() {
+    if (!editUser) return;
+    if (!editUsername.trim() || editUsername.trim().length < 2) {
+      showToast("warning", "用户名至少 2 个字符");
+      return;
+    }
+    setEditLoading(true);
+    try {
+      await put(`/auth/users/${editUser.id}`, {
+        username: editUsername.trim(),
+        status: editStatus,
+      });
+      showToast("success", "用户信息已更新");
+      setEditOpen(false);
+      execute();
+    } catch (err) {
+      const msg = err instanceof BizError ? err.message : "更新失败";
+      showToast("error", msg);
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  /* ── Delete handler ─────────────────────────────── */
+
+  async function handleDelete(user: UserItem) {
+    const ok = await confirm(() => del(`/auth/users/${user.id}`));
     if (ok) {
-      showToast("success", `已${action}用户 ${user.username}`);
-      setRefreshing(true);
-      await execute();
-      setRefreshing(false);
+      showToast("success", `已删除用户 ${user.username}`);
+      execute();
     }
   }
 
@@ -237,17 +295,10 @@ export default function UsersPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="搜索用户名或邮箱..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-[260px] px-3.5 py-2.5 text-[14px] font-sans border-2 border-[var(--color-border)] rounded-[var(--radius-sm)] bg-[var(--color-surface)] text-[var(--color-text)] min-h-[44px] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_var(--color-primary-light)] transition-all duration-150"
-          />
           <div style={{ width: 140 }}>
             <Select
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={handleStatusChange}
               options={[
                 { value: "all", label: "全部状态" },
                 { value: "active", label: "活跃" },
@@ -256,6 +307,17 @@ export default function UsersPage() {
               className="!mb-0"
             />
           </div>
+          <input
+            type="text"
+            placeholder="搜索用户名或邮箱..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className="w-[220px] px-3.5 py-2.5 text-[14px] font-sans border-2 border-[var(--color-border)] rounded-[var(--radius-sm)] bg-[var(--color-surface)] text-[var(--color-text)] min-h-[44px] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_var(--color-primary-light)] transition-all duration-150"
+          />
+          <Button variant="secondary" size="sm" onClick={handleSearch}>
+            搜索
+          </Button>
         </div>
         <Button variant="primary" size="sm" onClick={openCreate}>
           + 新建用户
@@ -263,9 +325,7 @@ export default function UsersPage() {
       </div>
 
       {/* User table */}
-      {refreshing ? (
-        <Skeleton.Table rows={5} />
-      ) : users.length === 0 ? (
+      {users.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--color-bg)] border-[3px] border-[var(--color-border)] flex items-center justify-center text-2xl text-[var(--color-text-tertiary)]">
             👤
@@ -323,7 +383,7 @@ export default function UsersPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => showToast("info", "编辑功能待后续版本实现")}
+                        onClick={() => openEdit(user)}
                       >
                         编辑
                       </Button>
@@ -331,9 +391,9 @@ export default function UsersPage() {
                         variant="ghost"
                         size="sm"
                         className="!text-[var(--color-error)]"
-                        onClick={() => handleToggleStatus(user)}
+                        onClick={() => handleDelete(user)}
                       >
-                        {user.status === "active" ? "禁用" : "启用"}
+                        删除
                       </Button>
                     </div>
                   </Table.Cell>
@@ -341,7 +401,7 @@ export default function UsersPage() {
               );
             })}
           </Table.Body>
-          <Table.Footer total={total} page={page} onPageChange={setPage} />
+          <Table.Footer total={total} page={page} onPageChange={handlePageChange} />
         </Table>
       )}
 
@@ -362,50 +422,54 @@ export default function UsersPage() {
         }
       >
         <div className="flex flex-col gap-1">
+          <Input label="用户名" required placeholder="2-50 个字符" value={formUsername} error={formErrors.username} onChange={(e) => { setFormUsername(e.target.value); clearFormError("username"); }} onBlur={() => blurCreateField("username")} />
+          <Input label="邮箱地址" required placeholder="user@microdify.local" value={formEmail} error={formErrors.email} onChange={(e) => { setFormEmail(e.target.value); clearFormError("email"); }} onBlur={() => blurCreateField("email")} />
+          <Input label="初始密码" required type="password" placeholder="至少 8 个字符" value={formPassword} error={formErrors.password} onChange={(e) => { setFormPassword(e.target.value); clearFormError("password"); if (e.target.value === formConfirmPassword) clearFormError("confirmPassword"); }} onBlur={() => blurCreateField("password")} />
+          <Input label="确认密码" required type="password" placeholder="再次输入密码" value={formConfirmPassword} error={formErrors.confirmPassword} onChange={(e) => { setFormConfirmPassword(e.target.value); if (e.target.value === formPassword) clearFormError("confirmPassword"); }} onBlur={() => blurCreateField("confirmPassword")} />
+        </div>
+      </Modal>
+
+      {/* Edit user modal */}
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="编辑用户"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setEditOpen(false)}>
+              取消
+            </Button>
+            <Button variant="primary" size="sm" loading={editLoading} onClick={handleEdit}>
+              保存
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-1">
           <Input
             label="用户名"
             required
-            placeholder="2-50 个字符"
-            value={formUsername}
-            error={formErrors.username}
-            onChange={(e) => { setFormUsername(e.target.value); clearFormError("username"); }}
-            onBlur={() => blurField("username")}
+            value={editUsername}
+            onChange={(e) => setEditUsername(e.target.value)}
           />
-          <Input
-            label="邮箱地址"
-            required
-            placeholder="user@microdify.local"
-            value={formEmail}
-            error={formErrors.email}
-            onChange={(e) => { setFormEmail(e.target.value); clearFormError("email"); }}
-            onBlur={() => blurField("email")}
-          />
-          <Input
-            label="初始密码"
-            required
-            type="password"
-            placeholder="至少 8 个字符"
-            value={formPassword}
-            error={formErrors.password}
-            onChange={(e) => {
-              setFormPassword(e.target.value);
-              clearFormError("password");
-              if (e.target.value === formConfirmPassword) clearFormError("confirmPassword");
-            }}
-            onBlur={() => blurField("password")}
-          />
-          <Input
-            label="确认密码"
-            required
-            type="password"
-            placeholder="再次输入密码"
-            value={formConfirmPassword}
-            error={formErrors.confirmPassword}
-            onChange={(e) => {
-              setFormConfirmPassword(e.target.value);
-              if (e.target.value === formPassword) clearFormError("confirmPassword");
-            }}
-            onBlur={() => blurField("confirmPassword")}
+          <div className="mb-5 max-w-[480px]">
+            <label className="block text-[14px] font-semibold mb-2">邮箱地址</label>
+            <input
+              type="text"
+              disabled
+              value={editUser?.email || ""}
+              className="w-full px-3.5 py-2.5 text-[14px] font-sans border-2 border-[var(--color-border)] rounded-[var(--radius-sm)] bg-[var(--color-bg)] text-[var(--color-text-tertiary)] min-h-[44px] cursor-not-allowed"
+            />
+            <p className="text-[12px] text-[var(--color-text-tertiary)] mt-1">邮箱不可修改</p>
+          </div>
+          <Select
+            label="状态"
+            value={editStatus}
+            onChange={setEditStatus}
+            options={[
+              { value: "active", label: "活跃" },
+              { value: "inactive", label: "未激活" },
+            ]}
           />
         </div>
       </Modal>

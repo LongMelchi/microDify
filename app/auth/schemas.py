@@ -39,6 +39,8 @@ class UserResponse(CoreResponse):
 
     email: str
     username: str
+    role: str = "developer"
+    status: str = "active"
 
 
 class TokenResponse(BaseModel):
@@ -46,6 +48,13 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+
+
+class UserUpdate(BaseModel):
+    """更新用户信息（所有字段可选，只更新传入的）"""
+
+    username: str | None = Field(None, min_length=2, max_length=100)
+    status: str | None = Field(None, pattern="^(active|inactive)$")
 
 
 # ─── Filter ────────────────────────────────────────────────────────────
@@ -56,3 +65,5 @@ class UserFilter(BaseModel):
 
     email: str | None = None
     username: str | None = None
+    role: str | None = None
+    status: str | None = None

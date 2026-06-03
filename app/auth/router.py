@@ -3,8 +3,10 @@
 仅声明路径/方法、注入 Depends、调 service、包装 Result。不包含 DB 查询或业务逻辑。
 """
 
+import uuid
+
 import structlog
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import schemas, service
@@ -93,3 +95,52 @@ async def get_current_user_info(
     return Result.ok(
         schemas.UserResponse.model_validate(user).model_dump()
     ).model_dump()
+
+
+@router.get("/users")
+async def list_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100, alias="pageSize"),
+    email: str | None = Query(None),
+    username: str | None = Query(None),
+    role: str | None = Query(None),
+    status: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """分页获取用户列表，支持搜索和筛选。"""
+    items, total = await service.list_users(
+        db,
+        page=page,
+        page_size=page_size,
+        email=email,
+        username=username,
+        role=role,
+        status=status,
+    )
+    user_list = [schemas.UserResponse.model_validate(u).model_dump() for u in items]
+    return Result.ok({"items": user_list, "total": total}).model_dump()
+
+
+@router.put("/users/{user_id}")
+async def update_user(
+    user_id: uuid.UUID,
+    body: schemas.UserUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """更新用户信息（用户名、状态，只更新传入字段）。"""
+    user = await service.update_user(
+        db, user_id, username=body.username, status=body.status
+    )
+    return Result.ok(
+        schemas.UserResponse.model_validate(user).model_dump()
+    ).model_dump()
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """删除用户（物理删除）。"""
+    await service.delete_user(db, user_id)
+    return Result.ok(None).model_dump()

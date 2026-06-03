@@ -4,7 +4,7 @@
 # Prerequisites: PostgreSQL + Redis running locally (no Docker).
 # See .env for connection details.
 
-.PHONY: start stop restart build build-backend build-frontend clean clean-backend clean-frontend test db-migrate help
+.PHONY: start stop restart restart-backend build build-backend build-frontend clean clean-backend clean-frontend test db-migrate help
 
 ROOT_DIR  := $(CURDIR)
 BACKEND   := $(ROOT_DIR)/app
@@ -23,6 +23,12 @@ stop:
 	@bash "$(ROOT_DIR)/stop.sh"
 
 restart: stop start
+
+restart-backend:
+	@echo "=== Restarting backend only ==="
+	@powershell -Command "$$pids=(netstat -ano 2>$$null | Select-String ':8000 ' | Select-String 'LISTENING' | ForEach-Object { (-split $$_.Line)[-1] }); if ($$pids) { $$pids | ForEach-Object { taskkill //PID $$_ //F 2>$$null } }"
+	@sleep 1
+	"$(VENV_PYTHON)" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # ── Build ──────────────────────────────────────────────────────────────────
 
@@ -80,9 +86,10 @@ help:
 	@echo "                redis://localhost:6379/0"
 	@echo ""
 	@echo "Targets:"
-	@echo "  start           Start backend + frontend dev servers (wraps start.sh)"
+	@echo "  start           Kill old servers + start backend + frontend"
 	@echo "  stop            Stop all dev servers (wraps stop.sh)"
 	@echo "  restart         Restart all dev servers"
+	@echo "  restart-backend Restart backend only (kills port 8000, starts uvicorn --reload)"
 	@echo "  build           Install deps (pip + npm) and verify"
 	@echo "  build-backend   Install Python deps into .venv/"
 	@echo "  build-frontend  npm install && npm run build"

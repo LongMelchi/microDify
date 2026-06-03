@@ -55,11 +55,18 @@ switch ($Target) {
       Start-Process -FilePath $redisExe -ArgumentList "--port 6379 --maxmemory 128mb" -WindowStyle Hidden
       Start-Sleep -Seconds 2
     }
-    Write-Host "Checking ports 8000, 3000..." -ForegroundColor Yellow
+    Write-Host "Stopping any running dev servers..." -ForegroundColor Yellow
     Free-Port 8000
     Free-Port 3000
     Write-Host "Starting microDify (local PG + Redis)..." -ForegroundColor Yellow
     Run-Bash $Start
+  }
+  "restart-backend" {
+    Write-Host "Restarting backend only..." -ForegroundColor Yellow
+    Free-Port 8000
+    Start-Sleep -Seconds 1
+    Write-Host "Starting FastAPI backend..." -ForegroundColor Yellow
+    & $VenvPy -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
   }
   "stop" {
     Write-Host "Stopping microDify..." -ForegroundColor Yellow
@@ -130,9 +137,10 @@ Connection:     postgres:****@localhost:5432/microdify
 Usage:  .\make.ps1 <target>
 
 Targets:
-  start           Start backend + frontend dev servers
+  start           Kill old dev servers + start backend + frontend
   stop            Stop all dev servers
   restart         Restart all dev servers
+  restart-backend Restart backend only (uvicorn --reload)
   build           Install deps (pip into .venv/ + npm) and verify
   build-backend   Install Python deps into .venv/
   build-frontend  npm install, npm run build

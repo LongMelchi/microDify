@@ -77,3 +77,84 @@ async def create_user(
     db.add(user)
     await db.flush()
     return user.id
+
+
+async def list_users(
+    db: AsyncSession,
+    page: int = 1,
+    page_size: int = 20,
+    email: str | None = None,
+    username: str | None = None,
+    role: str | None = None,
+    status: str | None = None,
+) -> tuple[list[User], int]:
+    """分页查询用户列表，支持模糊搜索和筛选。
+
+    Returns:
+        (items, total)
+    """
+    # Base query
+    stmt = select(User)
+    count_stmt = select(func.count(User.id))
+
+    # Filters
+    if email:
+        stmt = stmt.where(User.email.ilike(f"%{email}%"))
+        count_stmt = count_stmt.where(User.email.ilike(f"%{email}%"))
+    if username:
+        stmt = stmt.where(User.username.ilike(f"%{username}%"))
+        count_stmt = count_stmt.where(User.username.ilike(f"%{username}%"))
+    if role:
+        stmt = stmt.where(User.role == role)
+        count_stmt = count_stmt.where(User.role == role)
+    if status:
+        stmt = stmt.where(User.status == status)
+        count_stmt = count_stmt.where(User.status == status)
+
+    # Total count
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # Pagination
+    offset = (page - 1) * page_size
+    stmt = stmt.order_by(User.created_at.desc()).offset(offset).limit(page_size)
+
+    result = await db.execute(stmt)
+    items = list(result.scalars().all())
+
+    return items, total
+
+
+async def update_user(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    username: str | None = None,
+    status: str | None = None,
+) -> User:
+    """更新用户信息（只更新传入的字段）。
+
+    Raises:
+        BizException(NOT_FOUND): 用户不存在。
+    """
+    user = await get_user(db, user_id)
+    if username is not None:
+        user.username = username
+    if status is not None:
+        user.status = status
+    await db.flush()
+    await db.refresh(user)  # reload server-generated values (updated_at)
+    return user
+
+
+async def delete_user(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+) -> None:
+    """删除用户（物理删除）。
+
+    Raises:
+        BizException(NOT_FOUND): 用户不存在。
+    """
+    user = await get_user(db, user_id)
+    await db.delete(user)
+    await db.flush()

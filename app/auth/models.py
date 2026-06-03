@@ -30,8 +30,14 @@ class User(Base, TimestampsMixin):
         String(255), unique=True, nullable=False, index=True
     )
     username: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, index=True
+        String(100), nullable=False, index=True
     )
     hashed_password: Mapped[str] = mapped_column(
         String(255), nullable=False
+    )
+    role: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="developer"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="active"
     )
