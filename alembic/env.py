@@ -24,12 +24,6 @@ if config.config_file_name is not None:
 # NOTE: core/models.py is imported separately because CoreModel is abstract.
 
 from app.core.database import Base  # noqa: F401 — target_metadata
-from app.core.models import CoreModel  # noqa: F401 — registers abstract base
-
-# NOTE: CoreModel itself does not produce a table, but importing it is
-# required so that derived models function correctly at import time.
-# If the Base.metadata is still empty after imports, review whether the
-# module's models.py has been imported below.
 
 import app.auth.models  # noqa: F401 — users
 import app.prompt.models  # noqa: F401 — prompt_templates

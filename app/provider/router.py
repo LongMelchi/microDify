@@ -81,7 +81,8 @@ async def create_config(
         name=body.name,
         provider_type=body.provider_type,
         base_url=body.base_url,
-        api_key=body.api_key,
+        auth_type=body.auth_type,
+        auth_config=body.auth_config.model_dump() if body.auth_config else {},
         note=body.note,
     )
     return Result.ok(provider_service.provider_to_response(config)).model_dump()
@@ -101,7 +102,8 @@ async def update_config(
         name=body.name,
         provider_type=body.provider_type,
         base_url=body.base_url,
-        api_key=body.api_key,
+        auth_type=body.auth_type,
+        auth_config=body.auth_config.model_dump() if body.auth_config else None,
         note=body.note,
         is_active=body.is_active,
     )
@@ -126,10 +128,9 @@ async def test_config(
     _=Depends(get_current_user_id),
 ) -> dict:
     """测试指定提供商配置的连接。需登录。"""
-    from app.core.security import decrypt_api_key
-
     config = await provider_service.get_provider(db, config_id)
-    api_key = decrypt_api_key(config.api_key)
+    auth_config = provider_service._decrypt_auth_config(config.auth_config)
+    api_key = auth_config.get("api_key", "")
 
     test_message = "hello！现在是什么时间"
     try:
@@ -152,11 +153,15 @@ async def test_config(
             [{"role": "user", "content": test_message}],
         )
 
-        # 测试通过 → 自动设为活跃 + 更新最近调用时间
-        if not config.is_active:
-            config.is_active = True
+        # 测试通过 → 更新调用时间 + 健康状态 + 自动激活
         config.last_called_at = datetime.now(timezone.utc)
         await db.flush()
+
+        await provider_service.update_health_status(db, config_id, success=True)
+
+        if not config.is_active:
+            config.is_active = True
+            await db.flush()
         await db.refresh(config)
 
         return Result.ok({
@@ -167,8 +172,152 @@ async def test_config(
             "response": response,
         }).model_dump()
     except Exception as e:
+        # 测试失败 → 更新健康状态
+        await provider_service.update_health_status(
+            db, config_id, success=False, error_message=str(e)
+        )
+        await db.refresh(config)
         return Result.ok({
             "ok": False,
             "provider": config.name,
+            "error": str(e),
+        }).model_dump()
+
+
+# ── Provider model CRUD ─────────────────────────────────────────────────────
+
+
+@router.get("/configs/{config_id}/models")
+async def list_models(
+    config_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
+) -> dict:
+    """获取指定供应商的所有模型。需登录。"""
+    models = await provider_service.list_models(db, config_id)
+    data = [provider_service.model_to_response(m) for m in models]
+    return Result.ok(data).model_dump()
+
+
+@router.post("/configs/{config_id}/models")
+async def create_model(
+    config_id: uuid.UUID,
+    body: provider_schemas.ProviderModelCreate,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
+) -> dict:
+    """为指定供应商新增模型。需登录。"""
+    model = await provider_service.create_model(
+        db,
+        provider_config_id=config_id,
+        model_name=body.model_name,
+        display_name=body.display_name,
+        supports_chat=body.supports_chat,
+        supports_embedding=body.supports_embedding,
+        supports_vision=body.supports_vision,
+        max_tokens=body.max_tokens,
+        default_temperature=body.default_temperature,
+        input_cost_per_1k=body.input_cost_per_1k,
+        output_cost_per_1k=body.output_cost_per_1k,
+        is_enabled=body.is_enabled,
+        sort_order=body.sort_order,
+    )
+    return Result.ok(provider_service.model_to_response(model)).model_dump()
+
+
+@router.put("/configs/{config_id}/models/{model_id}")
+async def update_model(
+    config_id: uuid.UUID,
+    model_id: uuid.UUID,
+    body: provider_schemas.ProviderModelUpdate,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
+) -> dict:
+    """更新指定模型配置。需登录。"""
+    model = await provider_service.update_model(
+        db,
+        model_id,
+        **body.model_dump(exclude_none=True),
+    )
+    return Result.ok(provider_service.model_to_response(model)).model_dump()
+
+
+@router.delete("/configs/{config_id}/models/{model_id}")
+async def delete_model(
+    config_id: uuid.UUID,
+    model_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
+) -> dict:
+    """删除指定模型配置。需登录。"""
+    await provider_service.delete_model(db, model_id)
+    return Result.ok(None).model_dump()
+
+
+@router.get("/configs/models/batch")
+async def batch_list_models(
+    provider_ids: str = Query(..., description="逗号分隔的 provider UUID 列表"),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
+) -> dict:
+    """批量获取多个供应商的模型列表，供前端列表页使用。需登录。"""
+    ids = [uuid.UUID(pid.strip()) for pid in provider_ids.split(",") if pid.strip()]
+    grouped = await provider_service.list_models_by_provider_ids(db, ids)
+    data = {
+        str(pid): [provider_service.model_to_response(m) for m in models]
+        for pid, models in grouped.items()
+    }
+    return Result.ok(data).model_dump()
+
+
+# ── Health check ──────────────────────────────────────────────────────────────
+
+
+@router.post("/configs/{config_id}/health-check")
+async def health_check_config(
+    config_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user_id),
+) -> dict:
+    """手动触发供应商健康检测（轻量 ping）。需登录。"""
+    config = await provider_service.get_provider(db, config_id)
+    auth_config = provider_service._decrypt_auth_config(config.auth_config)
+    api_key = auth_config.get("api_key", "")
+
+    try:
+        if config.provider_type == "openai":
+            from app.provider.openai_provider import OpenAIProvider
+            provider = OpenAIProvider(api_key=api_key, base_url=config.base_url or None)
+        elif config.provider_type == "anthropic":
+            from app.provider.anthropic_provider import AnthropicProvider
+            provider = AnthropicProvider(api_key=api_key, base_url=config.base_url or None)
+        else:
+            return Result.ok({
+                "ok": False,
+                "health_status": config.health_status,
+                "error": f"不支持的提供商类型: {config.provider_type}",
+            }).model_dump()
+
+        await provider.chat(
+            settings.default_llm_model,
+            [{"role": "user", "content": "ping"}],
+        )
+
+        await provider_service.update_health_status(db, config_id, success=True)
+        await db.refresh(config)
+
+        return Result.ok({
+            "ok": True,
+            "health_status": config.health_status,
+            "last_health_check_at": config.last_health_check_at.isoformat() if config.last_health_check_at else None,
+        }).model_dump()
+    except Exception as e:
+        await provider_service.update_health_status(
+            db, config_id, success=False, error_message=str(e)
+        )
+        await db.refresh(config)
+        return Result.ok({
+            "ok": False,
+            "health_status": config.health_status,
             "error": str(e),
         }).model_dump()

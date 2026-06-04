@@ -20,7 +20,7 @@ const variantClasses: Record<TagVariant, string> = {
 export default function Tag({ variant = "default", children, className = "" }: TagProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-3 py-[3px] text-[12px] font-semibold rounded-[var(--radius-full)] border-2 border-[var(--color-text)] leading-relaxed ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center gap-1 px-3 py-[3px] text-[12px] font-semibold rounded-[var(--radius-full)] border-2 border-[var(--color-text)] leading-relaxed whitespace-nowrap ${variantClasses[variant]} ${className}`}
     >
       {children}
     </span>

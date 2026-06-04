@@ -42,7 +42,7 @@ export default function Button({
 
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 font-semibold rounded-[var(--radius-md)] transition-all duration-150 ease-out cursor-pointer
+      className={`inline-flex items-center justify-center gap-2 font-semibold rounded-[var(--radius-md)] transition-all duration-150 ease-out cursor-pointer whitespace-nowrap
         hover:translate-x-[2px] hover:translate-y-[2px]
         active:scale-[0.98] active:translate-x-[1px] active:translate-y-[1px]
         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]
